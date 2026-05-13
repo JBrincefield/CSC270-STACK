@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Hotdog Delivery - Hotdogs vs Sausages</title>
+	<link rel="stylesheet" href="{% static 'hotdogdelivery/styles.css' %}">
+</head>
+<body>
+	<nav>
+		<div class="nav-links">
+			<a href="/">Home</a>
+			<a href="/contact/">Contact</a>
+			<a href="/hotdogs/">Hotdogs vs Sausages</a>
+		</div>
+	</nav>
+
+	<main>
+		<section class="hero">
+			<h1>🌭 Hotdogs vs Sausages 🌭</h1>
+			
+			<p>NO, hotdogs are NOT the same as sausages, and I'm sick of hearing this brain-dead argument from people who apparently think every tube-shaped meat is automatically identical. That's like saying a Lamborghini and a lawn mower are the same because they both have engines. Sausages are greasy, over-seasoned identity crises stuffed into a casing by people desperate to feel cultured. Every bite is a gamble between "too salty," "too chewy," or "why does this taste like burnt herbs and sadness?"</p>
+			
+			<p>Hotdogs don't need to hide behind fake sophistication because hotdogs already achieved perfection. Clean flavor. Perfect texture. Reliable. A hotdog knows its purpose: dominate cookouts, baseball games, street carts, and midnight cravings without turning into some pretentious culinary lecture. You put a hotdog in a bun with mustard and suddenly life makes sense again. Meanwhile sausages need a five-minute explanation before anyone even wants to eat them.</p>
+			
+			<p>And STOP saying "well technically hotdogs are sausages." Technically, a shark and a goldfish are both fish too, but if you can't tell the difference, you should not be trusted near a kitchen. Hotdogs are superior in every possible way, and the fact people still compare them to sausages makes me feel like I'm trapped in a civilization-ending experiment run by idiots.</p>
+			
+			<img src="{% static 'hotdogdelivery/jones.png' %}" alt="Hotdog vs Sausages" class="debate-image">
+		</section>
+	</main>
+</body>
+</html>

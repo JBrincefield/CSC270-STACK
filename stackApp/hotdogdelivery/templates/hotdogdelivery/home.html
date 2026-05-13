@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Hotdog Delivery - Home</title>
+	<link rel="stylesheet" href="{% static 'hotdogdelivery/styles.css' %}">
+</head>
+<body>
+	<nav>
+		<div class="nav-links">
+			<a href="/">Home</a>
+			<a href="/contact/">Contact</a>
+			<a href="/hotdogs/">Hotdogs vs Sausages</a>
+		</div>
+	</nav>
+
+	<main>
+		<section class="hero">
+			<div class="hero-layout">
+				<div class="hero-copy">
+					<h1>Welcome to Hotdog Delivery</h1>
+					<p>
+						Bringing sizzling hot dogs right to your door. Explore our menu,
+						compare the classics, and choose your favorite way to enjoy the
+						perfect bite.
+					</p>
+
+					<h2>Fresh, Fast, and Flavorful</h2>
+					<p>
+						We focus on <strong>quick delivery</strong>, quality ingredients,
+						and bold flavor combinations made to satisfy every craving.
+					</p>
+
+					<div class="actions">
+						<a class="btn" href="/hotdogs/">Compare Favorites</a>
+						<a class="btn secondary" href="/contact/">Contact Us</a>
+					</div>
+				</div>
+
+				<div class="hero-image">
+					<img src="{% static 'hotdogdelivery/hotdog.png' %}" alt="A hotdog with toppings" />
+				</div>
+			</div>
+		</section>
+	</main>
+</body>
+</html>
