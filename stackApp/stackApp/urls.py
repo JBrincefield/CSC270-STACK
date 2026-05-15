@@ -39,6 +39,7 @@ from hotdogdelivery import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
-    path('contact/', views.contact, name='contact'),
-    path('hotdogs/', views.hotdogs_vs_sausages, name='hotdogs_vs_sausages'),
+    path('mission/', views.our_mission, name='mission'),
+    path('order/', views.order, name='order'),
+    path('api/kanye/', views.get_kanye_quote, name='kanye_quote'),
 ]

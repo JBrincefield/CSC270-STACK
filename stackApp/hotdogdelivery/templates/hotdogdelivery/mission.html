@@ -1,0 +1,50 @@
+{% extends 'hotdogdelivery/base.html' %}
+{% load static %}
+
+{% block title %}Hotdog Delivery - Our Mission{% endblock %}
+
+{% block content %}
+<section class="snap-section hero mission">
+	<div class="mission-inner">
+		<h1>About — Our Mission</h1>
+
+		<p>At Hotdog Delivery our goal is simple: deliver honest, great-tasting sausages and hotdogs with transparent ingredients and playful packaging.</p>
+
+		<ul>
+			<li>No additives or preservatives — just quality meat and simple spices.</li>
+			<li>Sustainable packaging experiments (we like the idea of playful, recyclable boxes).</li>
+			<li>Support local suppliers and keep the community fed.</li>
+		</ul>
+
+		<hr />
+
+		<h2>Hotdogs vs Sausages — the difference</h2>
+
+		<p>Hotdogs are typically seasoned and blended for a smooth texture and consistent, grill-ready profile. Sausages often celebrate a coarser grind, bolder spices, and regional character. We respect both traditions and deliver on both fronts.</p>
+
+		<p>We also believe in transparency: if you want sausages with no additives or preservatives, we make that promise. Our packaging experiments are playful but we always prioritize food safety and sustainability.</p>
+
+		<img src="{% static 'hotdogdelivery/jones.png' %}" alt="Hotdog vs Sausages" class="debate-image">
+
+		{% if kanye_quote %}
+		<div class="kanye-quote">
+			{{ kanye_quote }}
+			<span class="kanye-label">- Kanye West</span>
+		</div>
+		{% endif %}
+	</div>
+
+	<aside class="mission-contact">
+		{% include 'hotdogdelivery/_contact_fragment.html' %}
+	</aside>
+
+	<section class="founders">
+		<h2>Founders</h2>
+		<div class="founder-grid">
+			<div class="founder">Ethan Townsend</div>
+			<div class="founder">Tommy Southerland</div>
+			<div class="founder">Jacob Brincefield</div>
+		</div>
+	</section>
+</section>
+{% endblock %}

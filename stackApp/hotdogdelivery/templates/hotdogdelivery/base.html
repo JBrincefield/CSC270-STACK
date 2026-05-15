@@ -1,0 +1,25 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Hotdog Delivery{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'hotdogdelivery/styles.css' %}">
+</head>
+<body>
+    <header>
+        <nav class="hotdog-nav" aria-label="Primary navigation">
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/order/">Order</a>
+                <a href="/mission/">Mission</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="snap-container">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

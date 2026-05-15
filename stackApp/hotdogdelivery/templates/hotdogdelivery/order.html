@@ -1,0 +1,59 @@
+{% extends 'hotdogdelivery/base.html' %}
+{% load static %}
+
+{% block title %}Place Your Order{% endblock %}
+
+{% block content %}
+<section class="snap-section hero order-hero">
+	<div class="order-wrapper">
+		<h1>🌭 Ready to Order? 🌭</h1>
+
+		<div class="order-content">
+			<div class="mascot-section">
+				<img src="{% static 'hotdogdelivery/kanye.png' %}" alt="Kanye West - Our Mascot" class="mascot-image">
+				<p class="mascot-text"><strong>Kanye West</strong> & <strong>Jones BBQ and Foot Massage</strong><br><em>Our Official Mascots</em></p>
+			</div>
+
+			<div class="order-message">
+				<h2>Our Ordering System is Under Construction 🏗️</h2>
+				
+				<p>
+					We're currently revamping our hotdog delivery experience to be even more legendary. 
+					In the meantime, Kanye West and the team at Jones BBQ and Foot Massage are personally handling all orders!
+				</p>
+
+				<div class="contact-box">
+					<h3>To Place Your Order:</h3>
+					<p class="contact-number">
+						📞 Call: <strong>1-800-HOTDOGS-4-LYFE</strong>
+					</p>
+					<p class="contact-note">
+						(Our mascots are standing by to take your order personally)
+					</p>
+				</div>
+
+				<div class="features-list">
+					<h3>Why Order From Us?</h3>
+					<ul>
+						<li>✨ Kanye-approved quality</li>
+						<li>🛀 Foot massage with every order (courtesy of Jones BBQ)</li>
+						<li>🌭 Life-changing hotdog experiences</li>
+						<li>💯 100% legendary service</li>
+						<li>🎵 Background music by Kanye (if you call during business hours)</li>
+					</ul>
+				</div>
+
+				<div class="disclaimer">
+					<p><em>Disclaimer: Foot massages may not actually be included. Kanye may be busy with other projects. 
+					Jones BBQ and Foot Massage is a real place and we highly recommend visiting them.</em></p>
+				</div>
+
+				<div class="actions">
+					<a href="{% url 'home' %}" class="btn">Back to Home</a>
+					<a href="{% url 'mission' %}" class="btn secondary">About Us</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+{% endblock %}
