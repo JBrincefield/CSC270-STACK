@@ -2,19 +2,22 @@ from django.shortcuts import render
 import requests
 from django.http import JsonResponse
 
+
+def fetch_kanye_quote():
+    """Fetch a Kanye quote and degrade gracefully when the API is unavailable."""
+    try:
+        response = requests.get('https://api.kanye.rest', timeout=5)
+        response.raise_for_status()
+        return response.json().get('quote') or "Kanye's wisdom is currently unavailable"
+    except (requests.exceptions.RequestException, ValueError, KeyError):
+        return "Kanye's wisdom is currently unavailable"
+
 def our_mission(request):
     """Render the About / Our Mission page (keeps the hotdog vs sausage comparison).
 
     We preserve the Kanye quote call but degrade gracefully if the API is unavailable.
     """
-    kanye_quote = None
-    try:
-        response = requests.get('https://api.kanye.rest')
-        kanye_quote = response.json().get('quote')
-    except requests.exceptions.RequestException:
-        kanye_quote = "Kanye's wisdom is currently unavailable"
-
-    context = {'kanye_quote': kanye_quote}
+    context = {'kanye_quote': fetch_kanye_quote()}
     return render(request, 'hotdogdelivery/mission.html', context)
 
 
@@ -27,7 +30,7 @@ def order(request):
     return render(request, 'hotdogdelivery/order.html')
 
 def home(request):
-    return render(request, 'hotdogdelivery/home.html')
+    return render(request, 'hotdogdelivery/home.html', {'kanye_quote': fetch_kanye_quote()})
 
 def contact(request):
     return render(request, 'hotdogdelivery/contact.html')

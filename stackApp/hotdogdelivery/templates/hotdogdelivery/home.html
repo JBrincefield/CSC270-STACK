@@ -48,4 +48,15 @@
 		</div>
 	</div>
 </section>
+
+{% if kanye_quote %}
+<section class="snap-section quote-section">
+	<div class="quote-card">
+		<div class="kanye-quote">
+			{{ kanye_quote }}
+			<span class="kanye-label">- Kanye West</span>
+		</div>
+	</div>
+</section>
+{% endif %}
 {% endblock %}
