@@ -53,6 +53,12 @@
 				<div class="hotdogs-list-box">
 					<h2>Recent Orders (<span id="orderCount">{{ orders|length }}</span>)</h2>
 
+					<div class="search-section" style="margin-bottom: 15px; display: flex; gap: 10px;">
+						<input type="text" id="searchInput" placeholder="Search by customer or hotdog name..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+						<button type="button" class="btn btn-small" onclick="searchOrders()">Search Pending</button>
+						<button type="button" class="btn btn-small" onclick="loadOrders()" style="background-color: #666;">Clear</button>
+					</div>
+
 					<div id="ordersList" class="hotdogs-list">
 						{% if orders %}
 							{% for order in orders %}
@@ -85,6 +91,7 @@ const API_URL = '/api/orders/';
 const ordersListEl = document.getElementById('ordersList');
 
 document.getElementById('purchaseHotdogForm').addEventListener('submit', async (e) => {
+	// triggers on checkout/submit
 	e.preventDefault();
 	const data = {
 		customerName: document.getElementById('customerName').value,
@@ -94,6 +101,7 @@ document.getElementById('purchaseHotdogForm').addEventListener('submit', async (
 		notes: document.getElementById('notes').value
 	};
 
+	//sends post request to create the order
 	try {
 		const response = await fetch(API_URL, {
 			method: 'POST',
@@ -114,12 +122,14 @@ document.getElementById('purchaseHotdogForm').addEventListener('submit', async (
 	}
 });
 
+//cancel button
 ordersListEl.addEventListener('click', async (event) => {
 	const button = event.target.closest('.cancel-order-btn');
 	if (!button) return;
 	await cancelOrder(button.dataset.orderId);
 });
 
+// loads the orders you have made
 async function loadOrders() {
 	try {
 		const response = await fetch(API_URL);
@@ -148,6 +158,7 @@ async function loadOrders() {
 	}
 }
 
+//asks for confirmation before deleting, deletes the order
 async function cancelOrder(id) {
 	if (!confirm('Are you sure you want to cancel this order?')) return;
 	try {
@@ -163,6 +174,7 @@ async function cancelOrder(id) {
 	}
 }
 
+//displays temporary messages to the user
 function showMessage(message, type) {
 	const messageDiv = document.getElementById('formMessage');
 	messageDiv.textContent = message;
@@ -173,6 +185,49 @@ function showMessage(message, type) {
 	}, 3000);
 }
 
+//searches orders by customer name or hotdog name (pending only)
+async function searchOrders() {
+	const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+	if (!searchTerm.trim()) {
+		showMessage('Please enter a search term', 'error');
+		return;
+	}
+	try {
+		const response = await fetch(API_URL);
+		const data = await response.json();
+		const orders = data.orders;
+		
+		// Filter to only pending orders that match the search term
+		const filteredOrders = orders.filter(order => 
+			order.status === 'pending' && 
+			(order.customerName.toLowerCase().includes(searchTerm) || 
+			 order.hotdogName.toLowerCase().includes(searchTerm))
+		);
+		
+		document.getElementById('orderCount').textContent = filteredOrders.length;
+		if (!filteredOrders.length) {
+			ordersListEl.innerHTML = '<p class="empty-message">No pending orders found matching your search. 🔍</p>';
+			return;
+		}
+		ordersListEl.innerHTML = filteredOrders.map(order => `
+			<div class="hotdog-card" data-id="${order.id}">
+				<div class="hotdog-card-header">
+					<h3>${order.customerName} — ${order.hotdogName}</h3>
+					<span class="hotdog-price">$${order.totalPrice.toFixed(2)}</span>
+				</div>
+				<p class="hotdog-description">Qty: ${order.quantity} · Unit: $${order.unitPrice.toFixed(2)} · Status: ${order.status}</p>
+				${order.notes ? `<p class="hotdog-description"><strong>Notes:</strong> ${order.notes}</p>` : ''}
+				<div class="hotdog-actions">
+					<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="${order.id}">Cancel</button>
+				</div>
+			</div>
+		`).join('');
+	} catch (error) {
+		showMessage('Error searching orders: ' + error.message, 'error');
+	}
+}
+
+//ensures the script runs right when the page is opened
 loadOrders();
 </script>
 {% endblock %}

@@ -9,6 +9,7 @@ orders_store = []
 order_id_counter = [1]  # Using list to make it mutable in nested functions
 
 
+# fetches random kanye quote
 def fetch_kanye_quote():
     """Fetch a Kanye quote and degrade gracefully when the API is unavailable."""
     try:
@@ -18,11 +19,12 @@ def fetch_kanye_quote():
     except (requests.exceptions.RequestException, ValueError, KeyError):
         return "Kanye's wisdom is currently unavailable"
 
-
+#creates dictionary with kanye quote for later use
 def _kanye_quote_context():
     return {'kanye_quote': fetch_kanye_quote()}
 
 
+# formats and summarizes a single order
 def _order_summary(order):
     total = round(order['unitPrice'] * order['quantity'], 2)
     return {
@@ -36,7 +38,7 @@ def _order_summary(order):
         'status': order['status'],
     }
 
-
+#used to pass order data into the template
 def _order_context():
     return {'orders': [_order_summary(order) for order in orders_store]}
 
@@ -47,7 +49,7 @@ def our_mission(request):
     """
     return render(request, 'hotdogdelivery/mission.html', _kanye_quote_context())
 
-
+#runders the order.html and passes both orders and kanye quotes to the frontend
 def order(request):
     context = _order_context()
     context.update(_kanye_quote_context())
@@ -57,6 +59,9 @@ def home(request):
     return render(request, 'hotdogdelivery/home.html', _kanye_quote_context())
 
 
+#GET: retrieves all information from order_store
+#POST: Extracts data from incoming order and validates it, gives it an ID, 
+# and sets a status before appending it to orders_store
 @csrf_exempt
 def api_orders_list(request):
     """GET: List all hotdog orders, POST: Create a new hotdog purchase."""
@@ -109,6 +114,9 @@ def api_orders_list(request):
     return JsonResponse({'orders': [_order_summary(order) for order in orders_store]})
 
 
+#GET: Finds order by ID in orders_store, returns formatted orders
+#PUT: Finds order by ID, updates any information, and returns updated formatted order
+#DELETE: deletes the order
 @csrf_exempt
 def api_order_detail(request, order_id):
     """GET/UPDATE/DELETE a specific order."""
