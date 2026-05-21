@@ -8,52 +8,172 @@
 	<div class="order-wrapper">
 		<h1>🌭 Ready to Order? 🌭</h1>
 
-		<div class="order-content">
-			<div class="mascot-section">
-				<img src="{% static 'hotdogdelivery/kanye.png' %}" alt="Kanye West - Our Mascot" class="mascot-image">
-				<p class="mascot-text"><strong>Kanye West</strong> & <strong>Jones BBQ and Foot Massage</strong><br><em>Our Official Mascots</em></p>
-			</div>
+		<div class="mascot-section">
+			<img src="{% static 'hotdogdelivery/kanye.png' %}" alt="Kanye West - Our Mascot" class="mascot-image">
+			<p class="mascot-text"><strong>Kanye West</strong> & <strong>Jones BBQ and Foot Massage</strong><br><em>Our Official Mascots</em></p>
+		</div>
 
-			<div class="order-message">
-				<h2>Our Ordering System is Under Construction 🏗️</h2>
-				
-				<p>
-					We're currently revamping our hotdog delivery experience to be even more legendary. 
-					In the meantime, Kanye West and the team at Jones BBQ and Foot Massage are personally handling all orders!
-				</p>
+		<div class="order-purchase-panel">
+			<h2>🛒 Purchase Builder 🛒</h2>
 
-				<div class="contact-box">
-					<h3>To Place Your Order:</h3>
-					<p class="contact-number">
-						📞 Call: <strong>1-800-HOTDOGS-4-LYFE</strong>
-					</p>
-					<p class="contact-note">
-						(Our mascots are standing by to take your order personally)
-					</p>
+			<div class="hotdog-create-container">
+				<div class="create-form-box">
+					<h2>Checkout Details</h2>
+					<form id="purchaseHotdogForm" class="create-form">
+						<div class="form-group">
+							<label for="customerName">Customer Name</label>
+							<input type="text" id="customerName" name="customerName" placeholder="e.g., Ethan Townsend" required>
+						</div>
+
+						<div class="form-group">
+							<label for="hotdogName">Hotdog Name</label>
+							<input type="text" id="hotdogName" name="hotdogName" placeholder="e.g., The Ultimate Beast" required>
+						</div>
+
+						<div class="form-group">
+							<label for="quantity">Quantity</label>
+							<input type="number" id="quantity" name="quantity" min="1" value="1" required>
+						</div>
+
+						<div class="form-group">
+							<label for="unitPrice">Unit Price ($)</label>
+							<input type="number" id="unitPrice" name="unitPrice" placeholder="e.g., 12.99" step="0.01" min="0" required>
+						</div>
+
+						<div class="form-group">
+							<label for="notes">Order Notes</label>
+							<textarea id="notes" name="notes" placeholder="Sauce, toppings, or special requests..." rows="4"></textarea>
+						</div>
+
+						<button type="submit" class="btn btn-create">Place Order</button>
+						<div id="formMessage" class="form-message"></div>
+					</form>
 				</div>
 
-				<div class="features-list">
-					<h3>Why Order From Us?</h3>
-					<ul>
-						<li>✨ Kanye-approved quality</li>
-						<li>🛀 Foot massage with every order (courtesy of Jones BBQ)</li>
-						<li>🌭 Life-changing hotdog experiences</li>
-						<li>💯 100% legendary service</li>
-						<li>🎵 Background music by Kanye (if you call during business hours)</li>
-					</ul>
-				</div>
+				<div class="hotdogs-list-box">
+					<h2>Recent Orders (<span id="orderCount">{{ orders|length }}</span>)</h2>
 
-				<div class="disclaimer">
-					<p><em>Disclaimer: Foot massages may not actually be included. Kanye may be busy with other projects. 
-					Jones BBQ and Foot Massage is a real place and we highly recommend visiting them.</em></p>
-				</div>
-
-				<div class="actions">
-					<a href="{% url 'home' %}" class="btn">Back to Home</a>
-					<a href="{% url 'mission' %}" class="btn secondary">About Us</a>
+					<div id="ordersList" class="hotdogs-list">
+						{% if orders %}
+							{% for order in orders %}
+								<div class="hotdog-card" data-id="{{ order.id }}">
+									<div class="hotdog-card-header">
+										<h3>{{ order.customerName }} — {{ order.hotdogName }}</h3>
+										<span class="hotdog-price">${{ order.totalPrice|floatformat:2 }}</span>
+									</div>
+									<p class="hotdog-description">Qty: {{ order.quantity }} · Unit: ${{ order.unitPrice|floatformat:2 }} · Status: {{ order.status|title }}</p>
+									{% if order.notes %}
+										<p class="hotdog-description"><strong>Notes:</strong> {{ order.notes }}</p>
+									{% endif %}
+									<div class="hotdog-actions">
+										<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="{{ order.id }}">Cancel</button>
+									</div>
+								</div>
+							{% endfor %}
+						{% else %}
+							<p class="empty-message">No orders yet. Place the first hotdog purchase! 🌭</p>
+						{% endif %}
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 </section>
+
+<script>
+const API_URL = '/api/orders/';
+const ordersListEl = document.getElementById('ordersList');
+
+document.getElementById('purchaseHotdogForm').addEventListener('submit', async (e) => {
+	e.preventDefault();
+	const data = {
+		customerName: document.getElementById('customerName').value,
+		hotdogName: document.getElementById('hotdogName').value,
+		quantity: parseInt(document.getElementById('quantity').value, 10),
+		unitPrice: parseFloat(document.getElementById('unitPrice').value),
+		notes: document.getElementById('notes').value
+	};
+
+	try {
+		const response = await fetch(API_URL, {
+			method: 'POST',
+			headers: {'Content-Type': 'application/json'},
+			body: JSON.stringify(data)
+		});
+		const result = await response.json();
+		if (response.ok) {
+			showMessage('Order placed! 🎉', 'success');
+			document.getElementById('purchaseHotdogForm').reset();
+			document.getElementById('quantity').value = 1;
+			loadOrders();
+		} else {
+			showMessage(result.error || 'Error placing order', 'error');
+		}
+	} catch (error) {
+		showMessage('Error: ' + error.message, 'error');
+	}
+});
+
+ordersListEl.addEventListener('click', async (event) => {
+	const button = event.target.closest('.cancel-order-btn');
+	if (!button) return;
+	await cancelOrder(button.dataset.orderId);
+});
+
+async function loadOrders() {
+	try {
+		const response = await fetch(API_URL);
+		const data = await response.json();
+		const orders = data.orders;
+		document.getElementById('orderCount').textContent = orders.length;
+		if (!orders.length) {
+			ordersListEl.innerHTML = '<p class="empty-message">No orders yet. Place the first hotdog purchase! 🌭</p>';
+			return;
+		}
+		ordersListEl.innerHTML = orders.map(order => `
+			<div class="hotdog-card" data-id="${order.id}">
+				<div class="hotdog-card-header">
+					<h3>${order.customerName} — ${order.hotdogName}</h3>
+					<span class="hotdog-price">$${order.totalPrice.toFixed(2)}</span>
+				</div>
+				<p class="hotdog-description">Qty: ${order.quantity} · Unit: $${order.unitPrice.toFixed(2)} · Status: ${order.status}</p>
+				${order.notes ? `<p class="hotdog-description"><strong>Notes:</strong> ${order.notes}</p>` : ''}
+				<div class="hotdog-actions">
+					<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="${order.id}">Cancel</button>
+				</div>
+			</div>
+		`).join('');
+	} catch (error) {
+		console.error('Error loading orders:', error);
+	}
+}
+
+async function cancelOrder(id) {
+	if (!confirm('Are you sure you want to cancel this order?')) return;
+	try {
+		const response = await fetch(API_URL + id + '/', { method: 'DELETE' });
+		if (response.ok) {
+			loadOrders();
+			showMessage('Order cancelled.', 'success');
+		} else {
+			showMessage('Error cancelling order', 'error');
+		}
+	} catch (error) {
+		showMessage('Error: ' + error.message, 'error');
+	}
+}
+
+function showMessage(message, type) {
+	const messageDiv = document.getElementById('formMessage');
+	messageDiv.textContent = message;
+	messageDiv.className = 'form-message ' + type;
+	setTimeout(() => {
+		messageDiv.textContent = '';
+		messageDiv.className = 'form-message';
+	}, 3000);
+}
+
+loadOrders();
+</script>
 {% endblock %}
+

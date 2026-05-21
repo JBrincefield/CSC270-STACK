@@ -4,47 +4,108 @@
 {% block title %}Hotdog Delivery - Our Mission{% endblock %}
 
 {% block content %}
-<section class="snap-section hero mission">
-	<div class="mission-inner">
-		<h1>About — Our Mission</h1>
+<section class="snap-section mission-hero">
+	<div class="mission-shell">
+		<span class="mission-eyebrow">Our Mission</span>
+		<div class="mission-intro">
+			<h1>Hotdogs done honestly</h1>
+			<p>
+				We believe a hotdog should feel straightforward: clear ingredients, fresh service, and a little bit of fun.
+				Our pages are built to flow top-to-bottom, so the story is easy to follow from the first bite to the last.
+			</p>
+		</div>
 
-		<p>At Hotdog Delivery our goal is simple: deliver honest, great-tasting sausages and hotdogs with transparent ingredients and playful packaging.</p>
+		<div class="mission-hero-grid">
+			<div class="mission-hero-copy">
+				<h2>What we believe</h2>
+				<p>
+					Hotdog delivery should be simple and transparent. We want the experience to feel natural, friendly,
+					and easy to browse without awkward side-by-side blocks that interrupt the flow.
+				</p>
+				<p>
+					That means honest ingredients, playful branding, and a page layout that guides you from one section to the next.
+				</p>
+			</div>
 
-		<ul>
-			<li>No additives or preservatives — just quality meat and simple spices.</li>
-			<li>Sustainable packaging experiments (we like the idea of playful, recyclable boxes).</li>
-			<li>Support local suppliers and keep the community fed.</li>
-		</ul>
+			<div class="mission-hero-card">
+				<h2>Our promises</h2>
+				<ul>
+					<li>No additives or preservatives — just quality meat and simple spices.</li>
+					<li>Sustainable packaging and community-minded sourcing.</li>
+					<li>Friendly service that keeps the experience clean and easy.</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</section>
 
-		<hr />
+<section class="snap-section mission-panel">
+	<div class="mission-shell">
+		<div class="mission-section-heading">
+			<h2>How we serve</h2>
+			<p>
+				Our service style follows the same idea as the order page: a set of clear blocks that stack naturally and make sense as you scroll.
+			</p>
+		</div>
 
-		<h2>Hotdogs vs Sausages — the difference</h2>
+		<div class="mission-card-grid">
+			<article class="mission-mini-card">
+				<h3>Freshness</h3>
+				<p>We keep the focus on quality ingredients and quick delivery so the food feels hot, simple, and satisfying.</p>
+			</article>
+			<article class="mission-mini-card">
+				<h3>Community</h3>
+				<p>We want the project to feel local and friendly, with packaging and presentation that feel thoughtful.</p>
+			</article>
+			<article class="mission-mini-card">
+				<h3>Transparency</h3>
+				<p>We keep the record clear so you know what you’re looking at, and we keep the demo data in memory only.</p>
+			</article>
+		</div>
+	</div>
+</section>
 
-		<p>Hotdogs are typically seasoned and blended for a smooth texture and consistent, grill-ready profile. Sausages often celebrate a coarser grind, bolder spices, and regional character. We respect both traditions and deliver on both fronts.</p>
+<section class="snap-section mission-panel">
+	<div class="mission-shell">
+		<div class="mission-section-heading">
+			<h2>Hotdogs vs Sausages</h2>
+			<p>
+				They are related, but not the same. We keep both traditions in mind while making the comparison easy to read.
+			</p>
+		</div>
 
-		<p>We also believe in transparency: if you want sausages with no additives or preservatives, we make that promise. Our packaging experiments are playful but we always prioritize food safety and sustainability.</p>
+		<div class="mission-story-grid">
+			<img src="{% static 'hotdogdelivery/jones.png' %}" alt="Hotdog vs Sausages" class="mission-story-image">
+			<div class="mission-story-copy">
+				<p>
+					Hotdogs are typically seasoned and blended for a smooth texture and a consistent, grill-ready profile.
+					Sausages often celebrate a coarser grind, bolder spices, and regional character.
+				</p>
+				<p>
+					We respect both traditions and deliver on both fronts, but we want the page itself to feel calm and organized rather than jarring.
+				</p>
+			</div>
+		</div>
+	</div>
+</section>
 
-		<img src="{% static 'hotdogdelivery/jones.png' %}" alt="Hotdog vs Sausages" class="debate-image">
-
-		{% if kanye_quote %}
+{% if kanye_quote %}
+<section class="snap-section mission-panel">
+	<div class="mission-shell mission-quote-card">
+		<div class="mission-section-heading">
+			<h2>What inspires us</h2>
+		</div>
 		<div class="kanye-quote">
 			{{ kanye_quote }}
 			<span class="kanye-label">- Kanye West</span>
 		</div>
-		{% endif %}
 	</div>
+</section>
+{% endif %}
 
-	<aside class="mission-contact">
+<section class="snap-section mission-panel">
+	<div class="mission-shell mission-contact-panel">
 		{% include 'hotdogdelivery/_contact_fragment.html' %}
-	</aside>
-
-	<section class="founders">
-		<h2>Founders</h2>
-		<div class="founder-grid">
-			<div class="founder">Ethan Townsend</div>
-			<div class="founder">Tommy Southerland</div>
-			<div class="founder">Jacob Brincefield</div>
-		</div>
-	</section>
+	</div>
 </section>
 {% endblock %}

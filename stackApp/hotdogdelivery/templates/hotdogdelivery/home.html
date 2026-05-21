@@ -13,50 +13,20 @@
 				compare the classics, and choose your favorite way to enjoy the
 				perfect bite.
 			</p>
-
-			<h2>Fresh, Fast, and Flavorful</h2>
-			<p>
-				We focus on <strong>quick delivery</strong>, quality ingredients,
-				and bold flavor combinations made to satisfy every craving.
-			</p>
-
-			<!-- <div class="actions">
-				<a class="btn" href="/hotdogs/">Compare Favorites</a>
-				<a class="btn secondary" href="/contact/">Contact Us</a>
-			</div> -->
 		</div>
 
 		<div class="hero-image">
 			<img src="{% static 'hotdogdelivery/hotdog.png' %}" alt="A hotdog with toppings" />
 		</div>
-	</div>
-</section>
 
-<section class="snap-section features">
-	<div class="feature-grid">
-		<div class="feature">
-			<h3>Fast Delivery</h3>
-			<p>Hot and fresh—straight from our grills to your door in under 30 minutes.</p>
+		{% if kanye_quote %}
+		<div class="quote-card home-quote-card">
+			<div class="kanye-quote">
+				{{ kanye_quote }}
+				<span class="kanye-label">- Kanye West</span>
+			</div>
 		</div>
-		<div class="feature">
-			<h3>Quality Ingredients</h3>
-			<p>No fillers. Real meat, simple spices, and clean packaging.</p>
-		</div>
-		<div class="feature">
-			<h3>Community Focus</h3>
-			<p>Supporting local suppliers and sustainable packaging practices.</p>
-		</div>
+		{% endif %}
 	</div>
 </section>
-
-{% if kanye_quote %}
-<section class="snap-section quote-section">
-	<div class="quote-card">
-		<div class="kanye-quote">
-			{{ kanye_quote }}
-			<span class="kanye-label">- Kanye West</span>
-		</div>
-	</div>
-</section>
-{% endif %}
 {% endblock %}

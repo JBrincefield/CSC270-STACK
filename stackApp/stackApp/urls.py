@@ -1,36 +1,4 @@
-"""
-URL configuration for stackApp project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-
-"""
-1. User visits: http://localhost:8000/hotdogs/
-
-2. Django checks stackApp/urls.py
-    "Does this URL match any patterns?"
-    → Found: path('hotdogs/', views.hotdogs_vs_sausages)
-
-3. Django calls the view function:
-    views.hotdogs_vs_sausages(request)
-
-4. View renders the HTML template:
-    render(request, 'comparison/hotdogs_vs_sausages.html')
-
-5. HTML is sent back to browser
-    User sees your page! :hotdog: 🥵🐕 🌭🌭 
-"""
+"""URL configuration for stackApp."""
 
 from django.contrib import admin
 from django.urls import path
@@ -41,8 +9,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('mission/', views.our_mission, name='mission'),
     path('order/', views.order, name='order'),
-    path('create-hotdog/', views.create_hotdog_page, name='create_hotdog'),
-    path('api/hotdogs/', views.api_hotdogs_list, name='api_hotdogs_list'),
-    path('api/hotdogs/<int:hotdog_id>/', views.api_hotdog_detail, name='api_hotdog_detail'),
+    path('api/orders/', views.api_orders_list, name='api_orders_list'),
+    path('api/orders/<int:order_id>/', views.api_order_detail, name='api_order_detail'),
     path('api/kanye/', views.get_kanye_quote, name='kanye_quote'),
 ]

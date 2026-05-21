@@ -1,12 +1,18 @@
 {% load static %}
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Hotdog Delivery{% endblock %}</title>
     <link rel="icon" type="image/png" href="{% static 'hotdogdelivery/hotdog.png' %}">
-    <link rel="stylesheet" href="{% static 'hotdogdelivery/styles.css' %}">>
+    <style>
+        :root {
+            /* rotate the hotdog glyph so its tip points toward the top-left (pointer tip)
+               and set the hotspot near that tip (8 8). Adjust values if needed for your display. */
+            --hotdog-cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><g transform='translate(24 24) rotate(-45) translate(-24 -24)'><text x='4' y='34' font-size='28'>🌭</text></g></svg>") 8 8, auto;
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'hotdogdelivery/styles.css' %}">
 </head>
 <body>
     <header>
@@ -16,5 +22,27 @@
     <main class="snap-container">
         {% block content %}{% endblock %}
     </main>
+
+    {% include 'hotdogdelivery/_footer.html' %}
+    <!-- Ensure navbar links navigate even if other scripts intercept clicks -->
+    <script>
+        (function(){
+            // Use capture phase so this runs before most other listeners and
+            // forces a regular navigation for primary mouse clicks on navbar links.
+            document.addEventListener('click', function(e){
+                try {
+                    var anchor = e.target.closest && e.target.closest('.nav-links a');
+                    if (!anchor) return;
+                    // Allow modifier clicks / non-primary buttons to behave normally
+                    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    // Force navigation to anchor href
+                    window.location.href = anchor.href;
+                } catch (err) {
+                    // swallow errors to avoid breaking page scripts
+                    console.error('nav-fallback error', err);
+                }
+            }, true);
+        })();
+    </script>
 </body>
 </html>

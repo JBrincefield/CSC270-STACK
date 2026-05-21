@@ -10,18 +10,31 @@
 *
 {
 	box-sizing: border-box;
-	cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><g transform="rotate(-45 75 75)"><text x="10" y="110" font-size="100">🌭</text></g></svg>') 40 20, auto;
+	cursor: var(--hotdog-cursor, auto);
 }
 
 
 body {
 	margin: 0;
 	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-	background: linear-gradient(180deg, #fff 0%, #fff8f3 100%);
+	background: #fff;
 	color: var(--text-dark);
 	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
 	/* allow normal scrolling rather than hiding overflow */
 	overflow: auto;
+}
+
+header,
+main,
+footer {
+	position: relative;
+}
+
+main.snap-container {
+	flex: 1;
+	width: 100%;
 }
 
 
@@ -30,12 +43,25 @@ body {
 	position: fixed;
 	top: 12px;
 	right: 50px;
-	z-index: 999;
-	width: min(360px, calc(100vw - 24px));
-	aspect-ratio: 3.5 / 1;
+	/* ensure nav sits above transient overlays (modals) so links remain clickable */
+	/* make this effectively the top-most element to avoid unexpected stacking issues */
+	z-index: 2147483647 !important;
+	position: fixed !important;
+	/* ensure the nav creates its own stacking context so transformed page content
+	   cannot paint above it on some browsers */
+	transform: translateZ(0);
+	will-change: transform;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: fit-content;
+	max-width: min(680px, calc(100vw - 24px));
+	min-width: 280px;
+	padding: 10px 18px;
 	background: transparent;
 	filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.12));
-	pointer-events: none;
+	pointer-events: auto;
+	overflow: visible;
 }
 
 .hotdog-nav::before,
@@ -45,27 +71,33 @@ body {
 }
 
 .nav-art {
-	display: block;
+	position: absolute;
+	inset: 0;
 	width: 100%;
 	height: 100%;
-	object-fit: contain;
+	object-fit: fill;
 	opacity: 0.96;
 	user-select: none;
 	pointer-events: none;
+	z-index: 0;
 }
 
 .nav-links {
-	position: absolute;
-	inset: 0;
+	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: 10px;
-	padding: 0 18px 8px;
+	padding: 2px 4px;
+	flex-wrap: wrap;
 	pointer-events: auto;
+	z-index: 1;
 }
 
 .nav-links a {
+	/* make links explicitly interactive and ensure they accept pointer events */
+	display: inline-block;
+	pointer-events: auto;
 	color: #3b1f0f;
 	text-decoration: none;
 	font-weight: 800;
@@ -87,29 +119,103 @@ body {
 
 /* scroll-snap container: each page feels like a dynamic slide */
 .snap-container {
-	/* allow the main area to scroll normally beneath the fixed navbar */
-	min-height: 100vh;
-	overflow-y: auto;
+	/* use normal page scrolling so footer sits after content instead of overlaying it */
+	min-height: auto;
+	overflow: visible;
 	scroll-behavior: smooth;
-	scroll-snap-type: y mandatory;
+	scroll-snap-type: none;
 	-webkit-overflow-scrolling: touch;
-	padding: 24px 20px 60px 20px;
+	/* reserve space for fixed navbar while keeping footer in normal flow */
+	padding: calc(24px + 72px) 20px 40px 20px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 28px;
 }
 
-.snap-section {
-	scroll-snap-align: start;
-	min-height: auto;
+.site-footer {
+	width: 100%;
+	padding: 24px 20px 34px;
+	background: #fff;
+	border-top: 1px solid rgba(241, 208, 208, 0.9);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: auto;
+}
+
+.footer-inner {
+	width: 100%;
+	max-width: none;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
+	gap: 16px;
+	padding: 0;
+}
+
+.footer-title {
+	margin: 0;
+	color: var(--title-red);
+	font-size: 1.2rem;
+	font-weight: 800;
+	letter-spacing: 0.2px;
+	text-align: center;
+}
+
+.footer-links {
 	width: 100%;
-	padding: 28px 12px;
-	transition: transform 0.35s cubic-bezier(.2,.9,.2,1), opacity 0.35s ease;
+	display: flex;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 12px;
+	padding: 0 12px;
+}
+
+.footer-founder-link {
+	min-width: 160px;
+	padding: 12px 16px;
+	border-radius: 14px;
+	background: linear-gradient(180deg, #fffdfb 0%, #fff3f3 100%);
+	border: 1px solid rgba(193, 18, 31, 0.12);
+	text-decoration: none;
+	color: var(--text-dark);
+	font-weight: 800;
+	text-align: center;
+	box-shadow: 0 8px 18px rgba(18, 18, 18, 0.05);
+	transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.footer-founder-link span {
+	display: block;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--title-red);
+	margin-top: 4px;
+}
+
+.footer-founder-link:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 12px 24px rgba(18, 18, 18, 0.08);
+	border-color: rgba(193, 18, 31, 0.24);
+}
+
+.footer-founder-link:focus-visible {
+	outline: 3px solid rgba(193, 18, 31, 0.35);
+	outline-offset: 2px;
+}
+
+.snap-section {
+	scroll-snap-align: start;
+ 	min-height: auto;
+ 	display: flex;
+ 	flex-direction: column;
+ 	align-items: center;
+ 	/* anchor sections at the top so long pages don't appear vertically centered/cut-off */
+ 	justify-content: flex-start;
+ 	width: 100%;
+ 	padding: 28px 12px;
+ 	transition: transform 0.35s cubic-bezier(.2,.9,.2,1), opacity 0.35s ease;
 }
 
 .snap-section + .snap-section {
@@ -138,7 +244,7 @@ p {
 	width: 100%;
 	max-width: 980px;
 	margin: 0 auto;
-	background: linear-gradient(180deg, #fffdfb 0%, #fff8f8 100%);
+	background: #fff;
 	border: 1px solid rgba(241,208,208,0.9);
 	border-radius: 16px;
 	padding: 36px;
@@ -218,6 +324,10 @@ p {
 	text-align: center;
 }
 
+.home-quote-card {
+	margin-top: 6px;
+}
+
 /* hero layout: stacked to keep a natural reading flow */
 .hero-layout {
 	display: flex;
@@ -275,7 +385,8 @@ p {
 
 @media (max-width: 760px) {
 	.hotdog-nav {
-		width: min(320px, calc(100vw - 20px));
+		width: calc(100vw - 20px);
+		max-width: calc(100vw - 20px);
 		top: 10px;
 		right: 10px;
 	}
@@ -299,6 +410,12 @@ p {
 	}
 
 	.snap-container { padding-inline: 12px; }
+	/* smaller top offset on narrow screens to match reduced nav size */
+	.snap-container { padding-top: calc(24px + 56px); }
+
+	.mission-shell {
+		padding: 20px;
+	}
 }
 
 .form-group {
@@ -385,7 +502,7 @@ p {
 	width: 100%;
 	max-width: 900px;
 	margin: 0 auto;
-	background: var(--card);
+	background: #fff;
 	border: 1px solid var(--border);
 	border-radius: 16px;
 	padding: 40px;
@@ -526,94 +643,174 @@ p {
 	text-align: center;
 }
 
-@media (max-width: 760px) {
-	.order-content {
-		display: block;
-	}
+.order-purchase-panel {
+	width: 100%;
+	max-width: 1200px;
+	background: #fff;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	padding: 40px;
+	box-shadow: 0 18px 40px rgba(18,18,18,0.06);
+	margin-top: 0;
+}
 
-	.order-wrapper {
+.order-purchase-panel h2 {
+	text-align: center;
+	font-size: 32px;
+	margin: 0 0 32px;
+	color: var(--title-red);
+}
+
+.order-purchase-panel .hotdog-create-container {
+	margin-bottom: 0;
+}
+
+.mission-shell {
+	width: 100%;
+	max-width: 1200px;
+	background: #fff;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	padding: 40px;
+	box-shadow: 0 18px 40px rgba(18, 18, 18, 0.06);
+}
+
+.mission-shell h1,
+.mission-shell h2 {
+	text-align: center;
+	margin-bottom: 0;
+}
+
+.mission-eyebrow {
+	display: inline-block;
+	margin: 0 auto 8px;
+	padding: 6px 12px;
+	border-radius: 999px;
+	background: #fff3f3;
+	color: var(--title-red);
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.mission-intro,
+.mission-section-heading {
+	max-width: 800px;
+	margin: 0 auto 24px;
+	text-align: center;
+}
+
+.mission-hero-grid,
+.mission-story-grid {
+	display: grid;
+	grid-template-columns: 1.15fr 0.85fr;
+	gap: 24px;
+	align-items: start;
+}
+
+.mission-hero-card,
+.mission-story-copy,
+.mission-quote-card,
+.mission-contact-panel .contact-block {
+	background: #fff;
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	padding: 24px;
+	box-shadow: 0 10px 24px rgba(18, 18, 18, 0.04);
+}
+
+.mission-card-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.mission-mini-card {
+	background: #fff;
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	padding: 20px;
+	box-shadow: 0 10px 24px rgba(18, 18, 18, 0.04);
+}
+
+.mission-mini-card h3 {
+	margin-top: 0;
+	color: var(--title-red);
+	font-size: 1rem;
+}
+
+.mission-story-image {
+	width: 100%;
+	border-radius: 14px;
+	box-shadow: 0 12px 28px rgba(18, 18, 18, 0.08);
+	display: block;
+}
+
+.mission-quote-card .kanye-quote {
+	margin-top: 0;
+}
+
+.mission-contact-panel .contact-block {
+	max-width: none;
+	margin: 0;
+	text-align: left;
+}
+
+.mission-contact-panel .contact-block h2 {
+	text-align: center;
+}
+
+.mission-contact-panel .contact-icon {
+	display: block;
+	margin: 12px auto 20px;
+}
+
+@media (max-width: 900px) {
+	.mission-shell {
 		padding: 24px;
 	}
 
-	.order-wrapper h1 {
-		font-size: 24px;
-		margin-bottom: 20px;
+	.mission-hero-grid,
+	.mission-story-grid,
+	.mission-card-grid {
+		grid-template-columns: 1fr;
 	}
-
-	.order-message .actions {
-		flex-direction: column;
-	}
-
-	.order-message .btn {
-		width: 100%;
-	}
-}
-
-.contact-hero h1 {
-	margin-bottom: 12px;
-}
-
-.kanye-quote {
-	margin-top: 18px;
-	font-style: italic;
-	color: var(--text-dark);
-	opacity: 0.9;
-}
-
-.kanye-label {
-	display: block;
-	margin-top: 6px;
-	font-weight: 700;
-}
-
-.mission-inner {
-	max-width: 680px;
-	margin: 0 auto;
-	text-align: center;
-}
-
-
-.mission {
-	/* ensure mission page flows top-to-bottom instead of side-by-side */
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 24px;
-}
-
-.mission-contact {
-	margin-top: 0;
-	width: 100%;
-}
-
-.founders {
-	margin-top: 30px;
-	width: 100%;
-	max-width: 980px;
-	text-align: center;
-}
-
-.founder-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-	gap: 10px;
-	width: 100%;
-}
-
-.founder {
-	background: #fff;
-	padding: 12px 14px;
-	border-radius: 10px;
-	box-shadow: 0 8px 18px rgba(15,15,15,0.04);
-	text-align: center;
-	font-weight: 700;
 }
 
 @media (max-width: 760px) {
-	.founder-grid { grid-template-columns: 1fr; }
-	.order-wrapper { padding: 24px; }
-	.hero { padding: 24px; }
+	.hotdog-nav {
+		width: calc(100vw - 20px);
+		max-width: calc(100vw - 20px);
+		top: 10px;
+		right: 10px;
+	}
+
+	.nav-links {
+		gap: 6px;
+		padding-inline: 12px;
+	}
+
+	.nav-links a {
+		padding: 6px 10px;
+		font-size: 13px;
+	}
+
+	.hero-layout {
+		display: flex;
+	}
+
+	.hero-image {
+		order: -1;
+	}
+
 	.snap-container { padding-inline: 12px; }
+	/* smaller top offset on narrow screens to match reduced nav size */
+	.snap-container { padding-top: calc(24px + 56px); }
+
+	.mission-shell {
+		padding: 20px;
+	}
 }
 
 /* Create Hotdog Page Styles */
@@ -626,7 +823,7 @@ p {
 .hotdog-create-wrapper {
 	width: 100%;
 	max-width: 1200px;
-	background: var(--card);
+	background: #fff;
 	border: 1px solid var(--border);
 	border-radius: 16px;
 	padding: 40px;
@@ -648,7 +845,7 @@ p {
 
 .create-form-box,
 .hotdogs-list-box {
-	background: white;
+	background: #fff;
 	border: 1px solid var(--border);
 	border-radius: 12px;
 	padding: 24px;
