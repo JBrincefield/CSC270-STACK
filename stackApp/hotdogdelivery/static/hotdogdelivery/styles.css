@@ -10,6 +10,7 @@
 *
 {
 	box-sizing: border-box;
+	cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><g transform="rotate(-45 75 75)"><text x="10" y="110" font-size="100">🌭</text></g></svg>') 40 20, auto;
 }
 
 
@@ -28,7 +29,7 @@ body {
 .hotdog-nav {
 	position: fixed;
 	top: 12px;
-	right: 12px;
+	right: 50px;
 	z-index: 999;
 	width: min(360px, calc(100vw - 24px));
 	aspect-ratio: 3.5 / 1;
@@ -613,4 +614,274 @@ p {
 	.order-wrapper { padding: 24px; }
 	.hero { padding: 24px; }
 	.snap-container { padding-inline: 12px; }
+}
+
+/* Create Hotdog Page Styles */
+.create-hotdog-section {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+.hotdog-create-wrapper {
+	width: 100%;
+	max-width: 1200px;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	padding: 40px;
+}
+
+.hotdog-create-wrapper h1 {
+	text-align: center;
+	font-size: 32px;
+	margin-bottom: 32px;
+	color: var(--title-red);
+}
+
+.hotdog-create-container {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 32px;
+	margin-bottom: 32px;
+}
+
+.create-form-box,
+.hotdogs-list-box {
+	background: white;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 24px;
+}
+
+.create-form-box h2,
+.hotdogs-list-box h2 {
+	font-size: 18px;
+	color: var(--title-red);
+	margin-top: 0;
+	margin-bottom: 20px;
+	border-bottom: 2px solid var(--border);
+	padding-bottom: 12px;
+}
+
+.create-form {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.form-group {
+	display: flex;
+	flex-direction: column;
+}
+
+.form-group label {
+	font-weight: 600;
+	color: var(--text-dark);
+	margin-bottom: 6px;
+	font-size: 13px;
+}
+
+.form-group input,
+.form-group textarea {
+	padding: 10px 12px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	font-family: inherit;
+	font-size: 14px;
+	color: var(--text-dark);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+	outline: none;
+	border-color: var(--title-red);
+	box-shadow: 0 0 0 3px rgba(193, 18, 31, 0.1);
+}
+
+.btn-create {
+	background: linear-gradient(90deg, var(--title-red) 0%, #a00d1b 100%);
+	color: white;
+	border: none;
+	padding: 12px 20px;
+	font-weight: 600;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	margin-top: 8px;
+}
+
+.btn-create:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 16px rgba(193, 18, 31, 0.3);
+}
+
+.form-message {
+	padding: 10px 12px;
+	border-radius: 6px;
+	font-size: 13px;
+	text-align: center;
+	min-height: 20px;
+}
+
+.form-message.success {
+	background: #e6f7e6;
+	color: #2d6a2d;
+	border: 1px solid #a8dba8;
+}
+
+.form-message.error {
+	background: #ffe6e6;
+	color: #8b0000;
+	border: 1px solid #ffb3b3;
+}
+
+.hotdogs-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	max-height: 500px;
+	overflow-y: auto;
+}
+
+.hotdog-card {
+	background: #fafafa;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 16px;
+	transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.hotdog-card:hover {
+	box-shadow: 0 4px 12px rgba(193, 18, 31, 0.15);
+	transform: translateY(-2px);
+}
+
+.hotdog-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 8px;
+}
+
+.hotdog-card-header h3 {
+	margin: 0;
+	font-size: 16px;
+	color: var(--text-dark);
+}
+
+.hotdog-price {
+	font-weight: 700;
+	color: var(--title-red);
+	font-size: 16px;
+}
+
+.hotdog-description {
+	margin: 8px 0;
+	font-size: 13px;
+	color: var(--muted);
+	line-height: 1.5;
+}
+
+.hotdog-actions {
+	display: flex;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.btn-small {
+	padding: 6px 12px;
+	font-size: 12px;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: transform 0.2s ease;
+}
+
+.btn-delete {
+	background: #ff6b6b;
+	color: white;
+}
+
+.btn-delete:hover {
+	background: #ee5a52;
+	transform: translateY(-1px);
+}
+
+.btn-secondary {
+	background: #f0f0f0;
+	color: var(--text-dark);
+	border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+	background: #e6e6e6;
+	transform: translateY(-1px);
+}
+
+.empty-message {
+	text-align: center;
+	color: var(--muted);
+	padding: 20px;
+	font-style: italic;
+}
+
+/* Modal Styles */
+.modal {
+	position: fixed;
+	z-index: 1000;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0,0,0,0.4);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.modal-content {
+	background: white;
+	padding: 32px;
+	border-radius: 12px;
+	box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+	max-width: 500px;
+	width: 90%;
+	position: relative;
+}
+
+.modal-content h2 {
+	color: var(--title-red);
+	margin-top: 0;
+	margin-bottom: 20px;
+}
+
+.close {
+	position: absolute;
+	right: 16px;
+	top: 16px;
+	font-size: 28px;
+	font-weight: bold;
+	color: var(--muted);
+	cursor: pointer;
+	transition: color 0.2s ease;
+}
+
+.close:hover {
+	color: var(--text-dark);
+}
+
+@media (max-width: 880px) {
+	.hotdog-create-container {
+		grid-template-columns: 1fr;
+	}
+
+	.hotdog-create-wrapper {
+		padding: 24px;
+	}
+
+	.hotdog-create-wrapper h1 {
+		font-size: 24px;
+		margin-bottom: 24px;
+	}
 }

@@ -41,5 +41,8 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('mission/', views.our_mission, name='mission'),
     path('order/', views.order, name='order'),
+    path('create-hotdog/', views.create_hotdog_page, name='create_hotdog'),
+    path('api/hotdogs/', views.api_hotdogs_list, name='api_hotdogs_list'),
+    path('api/hotdogs/<int:hotdog_id>/', views.api_hotdog_detail, name='api_hotdog_detail'),
     path('api/kanye/', views.get_kanye_quote, name='kanye_quote'),
 ]
