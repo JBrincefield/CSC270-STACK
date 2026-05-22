@@ -1,0 +1,11 @@
+﻿# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+
+#for project
+/.idea/*
+__pycache__/*
+stackApp/hotdogdelivery/__pycache__/*
+stackApp/stackApp/__pycache__/*
