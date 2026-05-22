@@ -125,9 +125,11 @@ def api_order_detail(request, order_id):
     if not order:
         return JsonResponse({'error': 'Order not found'}, status=404)
 
+    #Get Functionality
     if request.method == 'GET':
         return JsonResponse(_order_summary(order))
 
+    #put functionality
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
@@ -154,6 +156,7 @@ def api_order_detail(request, order_id):
         except (json.JSONDecodeError, ValueError):
             return JsonResponse({'error': 'Invalid request'}, status=400)
 
+    #delete functionality
     elif request.method == 'DELETE':
         orders_store.remove(order)
         return JsonResponse({'message': 'Order cancelled'}, status=200)
