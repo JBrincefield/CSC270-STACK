@@ -24,9 +24,121 @@
     </main>
 
     {% include 'hotdogdelivery/_footer.html' %}
+    <!-- Hotdog Fall Effect -->
+    <style>
+        @keyframes hotdog-fall {
+            to {
+                transform: translateY(100vh);
+                opacity: 0;
+            }
+        }
+
+        .hotdog-fall {
+            position: fixed;
+            pointer-events: none;
+            font-size: 32px;
+            z-index: 9999;
+            user-select: none;
+            animation: hotdog-fall linear forwards;
+        }
+    </style>
+
     <!-- Ensure navbar links navigate even if other scripts intercept clicks -->
     <script>
         (function(){
+            // Function to create and animate hotdog
+            function createHotdog(x, y) {
+                try {
+                    const hotdog = document.createElement('div');
+                    hotdog.className = 'hotdog-fall';
+
+                    // 98% hotdog, 1% sausage, 1% corndog
+                    const rand = Math.random() * 100;
+                    if (rand < 1) {
+                        hotdog.textContent = '🥪'; // Sausage
+                    } else if (rand < 2) {
+                        hotdog.textContent = '🌽'; // Corndog
+                    } else {
+                        hotdog.textContent = '🌭'; // Hotdog
+                    }
+
+                    // Random rotation (0-360 degrees)
+                    const rotation = Math.random() * 360;
+
+                    // Random size from 50% to 100% of base size
+                    const sizePercent = 50 + Math.random() * 50;
+                    const baseSize = 32;
+                    const fontSize = (baseSize * sizePercent) / 100;
+
+                    // Position at given location
+                    hotdog.style.left = x + 'px';
+                    hotdog.style.top = y + 'px';
+                    hotdog.style.fontSize = fontSize + 'px';
+                    hotdog.style.transform = `rotate(${rotation}deg)`;
+                    hotdog.style.animationDuration = '4s';
+
+                    document.body.appendChild(hotdog);
+
+                    // Remove element after animation completes
+                    setTimeout(() => {
+                        hotdog.remove();
+                    }, 4000);
+                } catch (err) {
+                    console.error('hotdog error', err);
+                }
+            }
+
+            // Hotdog fall effect on click
+            document.addEventListener('click', function(e){
+                createHotdog(e.clientX, e.clientY);
+            });
+
+            // Hotdog fall effect on typing in text boxes
+            document.addEventListener('input', function(e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    const textBox = e.target;
+                    const rect = textBox.getBoundingClientRect();
+
+                    // Get cursor position
+                    const cursorPos = textBox.selectionStart;
+
+                    let x, y;
+
+                    if (textBox.tagName === 'INPUT') {
+                        // For input elements, estimate x based on text width
+                        const textBeforeCursor = textBox.value.substring(0, cursorPos);
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const computedStyle = window.getComputedStyle(textBox);
+                        ctx.font = computedStyle.fontSize + ' ' + computedStyle.fontFamily;
+                        const textWidth = ctx.measureText(textBeforeCursor).width;
+
+                        x = rect.left + textWidth + 5; // Add small offset for cursor width
+                        y = rect.top + rect.height / 2;
+                    } else {
+                        // For textarea, calculate row and column
+                        const textBeforeCursor = textBox.value.substring(0, cursorPos);
+                        const lines = textBeforeCursor.split('\n');
+                        const currentLine = lines[lines.length - 1];
+
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const computedStyle = window.getComputedStyle(textBox);
+                        ctx.font = computedStyle.fontSize + ' ' + computedStyle.fontFamily;
+                        const charWidth = ctx.measureText('M').width;
+                        const lineHeight = parseInt(computedStyle.lineHeight);
+
+                        const textWidth = ctx.measureText(currentLine).width;
+                        const lineIndex = lines.length - 1;
+
+                        x = rect.left + textWidth + 5;
+                        y = rect.top + (lineIndex * lineHeight) + lineHeight / 2;
+                    }
+
+                    createHotdog(x, y);
+                }
+            });
+
             // Use capture phase so this runs before most other listeners and
             // forces a regular navigation for primary mouse clicks on navbar links.
             document.addEventListener('click', function(e){
