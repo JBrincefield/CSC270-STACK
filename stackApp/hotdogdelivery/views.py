@@ -4,7 +4,7 @@ from django.http import JsonResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 
-# In-memory storage for orders (no database)
+# In-memory storage for orders
 orders_store = []
 order_id_counter = [1]  # Using list to make it mutable in nested functions
 
