@@ -148,18 +148,24 @@
                     let x, y;
 
                     if (textBox.tagName === 'INPUT') {
-                        // For input elements, estimate x based on text width
+                        // For input elements, estimate x based on text width and account for horizontal scroll/padding
                         const textBeforeCursor = textBox.value.substring(0, cursorPos);
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         const computedStyle = window.getComputedStyle(textBox);
-                        ctx.font = computedStyle.fontSize + ' ' + computedStyle.fontFamily;
+                        // Use full computed font when available for better measurements
+                        ctx.font = computedStyle.font || (computedStyle.fontSize + ' ' + computedStyle.fontFamily);
                         const textWidth = ctx.measureText(textBeforeCursor).width;
+                        const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
 
-                        x = rect.left + textWidth + 5; // Add small offset for cursor width
-                        y = rect.top + rect.height / 2;
+                        // rect.left is relative to the viewport (good for position: fixed). Subtract scrollLeft because the input
+                        // may be horizontally scrolled internally, and add padding to position at the caret.
+                        x = rect.left + paddingLeft + textWidth - (textBox.scrollLeft || 0) + 2; // small offset for caret
+                        // Vertical center of the input (accounting for vertical scrolling if any)
+                        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+                        y = rect.top + paddingTop + (rect.height - paddingTop - (parseFloat(computedStyle.paddingBottom)||0)) / 2;
                     } else {
-                        // For textarea, calculate row and column
+                        // For textarea, calculate row and column and account for internal scrolling
                         const textBeforeCursor = textBox.value.substring(0, cursorPos);
                         const lines = textBeforeCursor.split('\n');
                         const currentLine = lines[lines.length - 1];
@@ -167,15 +173,18 @@
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         const computedStyle = window.getComputedStyle(textBox);
-                        ctx.font = computedStyle.fontSize + ' ' + computedStyle.fontFamily;
-                        const charWidth = ctx.measureText('M').width;
-                        const lineHeight = parseInt(computedStyle.lineHeight);
-
+                        ctx.font = computedStyle.font || (computedStyle.fontSize + ' ' + computedStyle.fontFamily);
+                        // Estimate width of the text on the current line
                         const textWidth = ctx.measureText(currentLine).width;
                         const lineIndex = lines.length - 1;
+                        const lineHeight = parseFloat(computedStyle.lineHeight) || parseFloat(computedStyle.fontSize) || 16;
+                        const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+                        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
 
-                        x = rect.left + textWidth + 5;
-                        y = rect.top + (lineIndex * lineHeight) + lineHeight / 2;
+                        // rect.top is viewport-relative. Subtract textBox.scrollTop so the caret position inside a scrolled textarea
+                        // maps to the correct viewport position.
+                        x = rect.left + paddingLeft + textWidth - (textBox.scrollLeft || 0) + 2;
+                        y = rect.top + paddingTop + (lineIndex * lineHeight) + lineHeight / 2 - (textBox.scrollTop || 0);
                     }
 
                     createHotdog(x, y);

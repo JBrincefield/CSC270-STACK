@@ -4,9 +4,11 @@ from django.http import JsonResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 
-# In-memory storage for orders
-orders_store = []
-order_id_counter = [1]  # Using list to make it mutable in nested functions
+# Data access layer (can use Firebase/Firestore or fall back to in-memory)
+from . import dal
+
+# Initialize the DAL (will fall back to in-memory if Firebase isn't configured)
+dal.init_app()
 
 
 # fetches random kanye quote
@@ -40,7 +42,7 @@ def _order_summary(order):
 
 #used to pass order data into the template
 def _order_context():
-    return {'orders': [_order_summary(order) for order in orders_store]}
+    return {'orders': [_order_summary(order) for order in dal.get_all_orders()]}
 
 def our_mission(request):
     """Render the About / Our Mission page (keeps the hotdog vs sausage comparison).
@@ -94,8 +96,7 @@ def api_orders_list(request):
             except (ValueError, TypeError):
                 return JsonResponse({'error': 'Unit price must be a valid number'}, status=400)
 
-            order = {
-                'id': order_id_counter[0],
+            order_payload = {
                 'customerName': customer_name,
                 'hotdogName': hotdog_name,
                 'unitPrice': price_float,
@@ -103,15 +104,14 @@ def api_orders_list(request):
                 'notes': notes,
                 'status': 'pending'
             }
-            order_id_counter[0] += 1
-            orders_store.append(order)
 
-            return JsonResponse(_order_summary(order), status=201)
+            created = dal.create_order(order_payload)
+            return JsonResponse(_order_summary(created), status=201)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     # GET: Return all orders
-    return JsonResponse({'orders': [_order_summary(order) for order in orders_store]})
+    return JsonResponse({'orders': [_order_summary(order) for order in dal.get_all_orders()]})
 
 
 #GET: Finds order by ID in orders_store, returns formatted orders
@@ -120,46 +120,52 @@ def api_orders_list(request):
 @csrf_exempt
 def api_order_detail(request, order_id):
     """GET/UPDATE/DELETE a specific order."""
-    order = next((item for item in orders_store if item['id'] == order_id), None)
+    order = dal.get_order_by_id(order_id)
 
     if not order:
         return JsonResponse({'error': 'Order not found'}, status=404)
 
-    #Get Functionality
+    # Get Functionality
     if request.method == 'GET':
         return JsonResponse(_order_summary(order))
 
-    #put functionality
+    # put functionality
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
+            updates = {}
             if 'customerName' in data:
-                order['customerName'] = data.get('customerName', order['customerName']).strip()
+                updates['customerName'] = data.get('customerName', order['customerName']).strip()
             if 'hotdogName' in data:
-                order['hotdogName'] = data.get('hotdogName', order['hotdogName']).strip()
+                updates['hotdogName'] = data.get('hotdogName', order['hotdogName']).strip()
             if 'notes' in data:
-                order['notes'] = data.get('notes', order['notes']).strip()
+                updates['notes'] = data.get('notes', order['notes']).strip()
             if 'quantity' in data:
                 quantity_int = int(data['quantity'])
                 if quantity_int < 1:
                     return JsonResponse({'error': 'Quantity must be at least 1'}, status=400)
-                order['quantity'] = quantity_int
+                updates['quantity'] = quantity_int
             if 'unitPrice' in data:
                 price_float = float(data['unitPrice'])
                 if price_float < 0:
                     return JsonResponse({'error': 'Unit price must be positive'}, status=400)
-                order['unitPrice'] = price_float
+                updates['unitPrice'] = price_float
             if 'status' in data:
-                order['status'] = data['status']
+                updates['status'] = data['status']
 
-            return JsonResponse(_order_summary(order))
+            updated = dal.update_order(order_id, updates)
+            if not updated:
+                return JsonResponse({'error': 'Order not found'}, status=404)
+            return JsonResponse(_order_summary(updated))
         except (json.JSONDecodeError, ValueError):
             return JsonResponse({'error': 'Invalid request'}, status=400)
 
-    #delete functionality
+    # delete functionality
     elif request.method == 'DELETE':
-        orders_store.remove(order)
-        return JsonResponse({'message': 'Order cancelled'}, status=200)
+        success = dal.delete_order(order_id)
+        if success:
+            return JsonResponse({'message': 'Order cancelled'}, status=200)
+        return JsonResponse({'error': 'Order not found'}, status=404)
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
