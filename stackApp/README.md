@@ -2,6 +2,80 @@
 
 A Django 6 web app for browsing a playful hotdog brand, reading the mission page, and placing hotdog orders with optional persistent storage via Firebase Firestore.
 
+---
+
+## ⚡ Quick Start for Professor
+
+**This project includes a Firebase Admin SDK credentials file** to enable order persistence. Follow these steps to get the app running:
+
+### Minimal Setup (2–3 minutes)
+
+1. **Install Python 3.8+** if not already installed
+   - Check: `python --version`
+   - If needed, download from [python.org](https://www.python.org/)
+
+2. **Navigate to the project folder:**
+   ```powershell
+   cd <unzipped-project>\stackApp
+   ```
+
+3. **Create and activate a virtual environment:**
+   ```powershell
+   python -m venv .venv
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+   .\.venv\Scripts\Activate.ps1
+   ```
+
+4. **Install dependencies:**
+   ```powershell
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+5. **Run the development server:**
+   ```powershell
+   py manage.py runserver
+   ```
+
+6. **Open your browser to:**
+   ```
+   http://127.0.0.1:8000/
+   ```
+
+✅ **That's it!** The app runs with **in-memory storage by default** (orders reset on server restart). Orders persist across server restarts if you set up the Firebase credentials (optional—see below).
+
+### Using the Included Firebase JSON File (Optional)
+
+If you want orders to persist across server restarts:
+
+1. **Set the environment variable** to point to the included Firebase credentials file:
+   ```powershell
+   $env:FIREBASE_CREDENTIALS = "<unzipped-project>\csc270-stackapp-firebase-adminsdk-fbsvc-f472f3aa80.json"
+   ```
+
+2. **Restart the server:**
+   ```powershell
+   py manage.py runserver
+   ```
+
+3. **Test persistence:**
+   - Create an order through the UI
+   - Stop the server (Ctrl+C)
+   - Restart the server
+   - The order is still there ✓
+
+**Note:** The included JSON file is configured for a specific Firebase project. If you use it, orders will be stored in that cloud project. You can always revert to in-memory storage by unsetting the environment variable or omitting it.
+
+### App Features
+
+- **Home page**: Browse the hotdog brand with a Kanye West quote card
+- **Mission page**: Learn about hotdogs vs. sausages
+- **Order page**: Place orders, view and manage them in real-time
+- **REST API**: JSON endpoints for orders (`/api/orders/`)
+- **Search & filter**: Live client-side search on the order page
+
+---
+
 ## What changed recently
 
 **Phase 4 (Persistence)**
@@ -311,6 +385,32 @@ The DAL is transparent to the API — routes use the same endpoints either way. 
 - Verify the env var is set in your current shell: `echo $env:FIREBASE_CREDENTIALS`
 - Verify the file path exists and is readable: `Test-Path "C:\path\to\file.json"`
 - Check the server logs for errors related to firebase-admin initialization.
+
+## About the Firebase Credentials File
+
+**File location (in this zipped project):**
+```
+csc270-stackapp-firebase-adminsdk-fbsvc-f472f3aa80.json
+```
+
+This is a **Firebase Admin SDK service account key** that allows the app to connect to a Google Cloud Firestore database for persistent order storage. 
+
+**What it does:**
+- Enables the app to store orders in a cloud database instead of just in memory
+- Orders created in the app persist even after the server restarts
+- The Data Access Layer (`dal.py`) automatically uses it if the `FIREBASE_CREDENTIALS` environment variable points to this file
+
+**How to use it:**
+1. Use it as described in the "Using the Included Firebase JSON File" section above
+2. Or just run the app without it — in-memory storage (non-persistent) works fine for simple testing
+
+**Security note:**
+- This file contains credentials to a Firebase project
+- In a real production scenario, you would **never commit this to version control**
+- For this submission, it's included for your convenience to test the full persistence feature
+- If you want to revoke these credentials later, delete the service account in the [Firebase Console](https://console.firebase.google.com/)
+
+---
 
 ## Notes
 
