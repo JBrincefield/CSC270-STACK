@@ -383,40 +383,7 @@ p {
 	.snap-section { min-height: auto; padding: 28px; }
 }
 
-@media (max-width: 760px) {
-	.hotdog-nav {
-		width: calc(100vw - 20px);
-		max-width: calc(100vw - 20px);
-		top: 10px;
-		right: 10px;
-	}
 
-	.nav-links {
-		gap: 6px;
-		padding-inline: 12px;
-	}
-
-	.nav-links a {
-		padding: 6px 10px;
-		font-size: 13px;
-	}
-
-	.hero-layout {
-		display: flex;
-	}
-
-	.hero-image {
-		order: -1;
-	}
-
-	.snap-container { padding-inline: 12px; }
-	/* smaller top offset on narrow screens to match reduced nav size */
-	.snap-container { padding-top: calc(24px + 56px); }
-
-	.mission-shell {
-		padding: 20px;
-	}
-}
 
 .form-group {
 	margin-bottom: 20px;

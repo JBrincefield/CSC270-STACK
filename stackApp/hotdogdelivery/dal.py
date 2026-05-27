@@ -1,4 +1,16 @@
-﻿import os
+﻿"""Data Access Layer (DAL) for orders.
+
+This module provides a thin abstraction over either Firestore (when
+Firebase credentials are available) or a simple in-memory fallback store
+used for local development and testing. It tries to keep the API stable
+so the rest of the application doesn't need to know which backend is
+being used.
+
+The in-memory store is intentionally lightweight and not meant for
+production use.
+"""
+
+import os
 import threading
 from copy import deepcopy
 
@@ -72,7 +84,13 @@ def get_all_orders():
 
 
 def _find_doc_snapshot_by_id(order_id):
-    """Return (doc_snapshot, doc_ref) or (None, None) if not found."""
+    """Return a Firestore document snapshot-like object for the given id.
+
+    When using Firestore this returns the snapshot returned by the
+    query stream (or None when not found). When the in-memory fallback is
+    active a lightweight object with a `to_dict()` method is returned so
+    the rest of the module can use the same _doc_to_order() conversion.
+    """
     init_app()
     if _use_firestore and _client is not None:
         coll = _client.collection('orders')
@@ -85,7 +103,8 @@ def _find_doc_snapshot_by_id(order_id):
     # in-memory fallback
     for idx, item in enumerate(_in_memory_store):
         if item.get('id') == int(order_id):
-            # Construct a lightweight doc-like object
+            # Construct a lightweight doc-like object compatible with
+            # the Firestore snapshot API used elsewhere in this module.
             class _Doc:
                 def __init__(self, data):
                     self._data = data
@@ -95,6 +114,9 @@ def _find_doc_snapshot_by_id(order_id):
 
                 @property
                 def reference(self):
+                    # Keep an attribute for callers that expect a reference
+                    # object (used in update/delete paths); return None
+                    # for the in-memory fallback.
                     return None
 
             return _Doc(_in_memory_store[idx])

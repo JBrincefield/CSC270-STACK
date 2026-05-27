@@ -1,14 +1,28 @@
+"""HTTP views for the Hotdog Delivery app.
+
+This module contains simple Django views and a tiny API used by the
+frontend. It delegates persistence to the data access layer in
+`hotdogdelivery.dal` and keeps the presentation logic lightweight.
+
+Where external services are used (e.g. the Kanye REST API) this module
+handles errors gracefully to avoid degrading the user experience.
+"""
+
 from django.shortcuts import render
 import requests
 from django.http import JsonResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
+import logging
 
 # Data access layer (can use Firebase/Firestore or fall back to in-memory)
 from . import dal
 
 # Initialize the DAL (will fall back to in-memory if Firebase isn't configured)
 dal.init_app()
+
+# Module logger
+logger = logging.getLogger(__name__)
 
 
 # fetches random kanye quote
@@ -18,7 +32,10 @@ def fetch_kanye_quote():
         response = requests.get('https://api.kanye.rest', timeout=5)
         response.raise_for_status()
         return response.json().get('quote') or "Kanye's wisdom is currently unavailable"
-    except (requests.exceptions.RequestException, ValueError, KeyError):
+    except (requests.exceptions.RequestException, ValueError, KeyError) as exc:
+        # Log the exception for easier debugging in development but keep
+        # the user-facing behavior unchanged (a friendly fallback message).
+        logger.exception('Failed to fetch Kanye quote: %s', exc)
         return "Kanye's wisdom is currently unavailable"
 
 #creates dictionary with kanye quote for later use
@@ -171,4 +188,10 @@ def api_order_detail(request, order_id):
 
 
 def get_kanye_quote(request):
+    """A tiny API endpoint returning a Kanye quote (used by the frontend).
+
+    This keeps the frontend decoupled from the external API and ensures
+    server-side caching or rate-limiting could be added later without
+    changing client code.
+    """
     return JsonResponse({'quote': fetch_kanye_quote()})
