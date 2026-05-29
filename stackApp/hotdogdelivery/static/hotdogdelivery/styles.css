@@ -414,6 +414,22 @@ p {
 	box-shadow: 0 0 0 3px rgba(193, 18, 31, 0.1);
 }
 
+.form-group select {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 14px;
+	color: var(--text-dark);
+}
+
+.form-group select:focus {
+	outline: none;
+	border-color: var(--title-red);
+	box-shadow: 0 0 0 3px rgba(193, 18, 31, 0.1);
+}
+
 .contact-form button {
 	background: var(--title-red);
 	color: white;
@@ -962,6 +978,16 @@ p {
 	transition: transform 0.2s ease;
 }
 
+.btn-edit {
+	background: #4CAF50;
+	color: white;
+}
+
+.btn-edit:hover {
+	background: #45a049;
+	transform: translateY(-1px);
+}
+
 .btn-delete {
 	background: #ff6b6b;
 	color: white;
@@ -1002,6 +1028,10 @@ p {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+}
+
+.modal[hidden] {
+	display: none !important;
 }
 
 .modal-content {

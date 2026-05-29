@@ -72,6 +72,7 @@
 										<p class="hotdog-description"><strong>Notes:</strong> {{ order.notes }}</p>
 									{% endif %}
 									<div class="hotdog-actions">
+										<button type="button" class="btn btn-small btn-edit edit-order-btn" data-order-id="{{ order.id }}">Edit</button>
 										<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="{{ order.id }}">Cancel</button>
 									</div>
 								</div>
@@ -86,9 +87,61 @@
 	</div>
 </section>
 
+<!-- Edit Order Modal -->
+<div id="editOrderModal" class="modal" hidden>
+	<div class="modal-content">
+		<span class="close" onclick="closeEditModal()">&times;</span>
+		<h2>Edit Order</h2>
+		<form id="editOrderForm" class="create-form">
+			<div class="form-group">
+				<label for="editCustomerName">Customer Name</label>
+				<input type="text" id="editCustomerName" name="customerName" required>
+			</div>
+
+			<div class="form-group">
+				<label for="editHotdogName">Hotdog Name</label>
+				<input type="text" id="editHotdogName" name="hotdogName" required>
+			</div>
+
+			<div class="form-group">
+				<label for="editQuantity">Quantity</label>
+				<input type="number" id="editQuantity" name="quantity" min="1" required>
+			</div>
+
+			<div class="form-group">
+				<label for="editUnitPrice">Unit Price ($)</label>
+				<input type="number" id="editUnitPrice" name="unitPrice" step="0.01" min="0" required>
+			</div>
+
+			<div class="form-group">
+				<label for="editNotes">Order Notes</label>
+				<textarea id="editNotes" name="notes" rows="3"></textarea>
+			</div>
+
+			<div class="form-group">
+				<label for="editStatus">Status</label>
+				<select id="editStatus" name="status" style="padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 14px; color: var(--text-dark);">
+					<option value="pending">Pending</option>
+					<option value="in_progress">In Progress</option>
+					<option value="completed">Completed</option>
+					<option value="cancelled">Cancelled</option>
+				</select>
+			</div>
+
+			<div id="editFormMessage" class="form-message"></div>
+
+			<div style="display: flex; gap: 10px; margin-top: 16px;">
+				<button type="submit" class="btn-create" style="flex: 1;">Save Changes</button>
+				<button type="button" class="btn-secondary" style="flex: 1; padding: 12px 20px; border: 1px solid var(--border);" onclick="closeEditModal()">Cancel</button>
+			</div>
+		</form>
+	</div>
+</div>
+
 <script>
 const API_URL = '/api/orders/';
 const ordersListEl = document.getElementById('ordersList');
+let currentEditingOrderId = null;
 
 document.getElementById('purchaseHotdogForm').addEventListener('submit', async (e) => {
 	// triggers on checkout/submit
@@ -124,9 +177,52 @@ document.getElementById('purchaseHotdogForm').addEventListener('submit', async (
 
 //cancel button
 ordersListEl.addEventListener('click', async (event) => {
-	const button = event.target.closest('.cancel-order-btn');
-	if (!button) return;
-	await cancelOrder(button.dataset.orderId);
+	const deleteButton = event.target.closest('.cancel-order-btn');
+	if (deleteButton) {
+		await cancelOrder(deleteButton.dataset.orderId);
+		return;
+	}
+
+	const editButton = event.target.closest('.edit-order-btn');
+	if (editButton) {
+		openEditModal(editButton.dataset.orderId);
+		return;
+	}
+});
+
+// Edit order form submission
+document.getElementById('editOrderForm').addEventListener('submit', async (e) => {
+	e.preventDefault();
+	if (!currentEditingOrderId) return;
+
+	const data = {
+		customerName: document.getElementById('editCustomerName').value,
+		hotdogName: document.getElementById('editHotdogName').value,
+		quantity: parseInt(document.getElementById('editQuantity').value, 10),
+		unitPrice: parseFloat(document.getElementById('editUnitPrice').value),
+		notes: document.getElementById('editNotes').value,
+		status: document.getElementById('editStatus').value
+	};
+
+	try {
+		const response = await fetch(API_URL + currentEditingOrderId + '/', {
+			method: 'PUT',
+			headers: {'Content-Type': 'application/json'},
+			body: JSON.stringify(data)
+		});
+		const result = await response.json();
+		if (response.ok) {
+			showEditMessage('Order updated! 🎉', 'success');
+			setTimeout(() => {
+				closeEditModal();
+				loadOrders();
+			}, 500);
+		} else {
+			showEditMessage(result.error || 'Error updating order', 'error');
+		}
+	} catch (error) {
+		showEditMessage('Error: ' + error.message, 'error');
+	}
 });
 
 // loads the orders you have made
@@ -149,6 +245,7 @@ async function loadOrders() {
 				<p class="hotdog-description">Qty: ${order.quantity} · Unit: $${order.unitPrice.toFixed(2)} · Status: ${order.status}</p>
 				${order.notes ? `<p class="hotdog-description"><strong>Notes:</strong> ${order.notes}</p>` : ''}
 				<div class="hotdog-actions">
+					<button type="button" class="btn btn-small btn-edit edit-order-btn" data-order-id="${order.id}">Edit</button>
 					<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="${order.id}">Cancel</button>
 				</div>
 			</div>
@@ -174,6 +271,44 @@ async function cancelOrder(id) {
 	}
 }
 
+// Open edit modal
+async function openEditModal(orderId) {
+	try {
+		const response = await fetch(API_URL + orderId + '/');
+		if (!response.ok) {
+			showMessage('Error loading order', 'error');
+			return;
+		}
+		const order = await response.json();
+
+		currentEditingOrderId = orderId;
+		document.getElementById('editCustomerName').value = order.customerName;
+		document.getElementById('editHotdogName').value = order.hotdogName;
+		document.getElementById('editQuantity').value = order.quantity;
+		document.getElementById('editUnitPrice').value = order.unitPrice;
+		document.getElementById('editNotes').value = order.notes;
+		document.getElementById('editStatus').value = order.status;
+		document.getElementById('editFormMessage').textContent = '';
+	document.getElementById('editOrderModal').hidden = false;
+	} catch (error) {
+		showMessage('Error: ' + error.message, 'error');
+	}
+}
+
+// Close edit modal
+function closeEditModal() {
+	document.getElementById('editOrderModal').hidden = true;
+	currentEditingOrderId = null;
+}
+
+// Close modal when clicking outside of it
+window.addEventListener('click', (event) => {
+	const modal = document.getElementById('editOrderModal');
+	if (event.target === modal) {
+		closeEditModal();
+	}
+});
+
 //displays temporary messages to the user
 function showMessage(message, type) {
 	const messageDiv = document.getElementById('formMessage');
@@ -183,6 +318,19 @@ function showMessage(message, type) {
 		messageDiv.textContent = '';
 		messageDiv.className = 'form-message';
 	}, 3000);
+}
+
+//displays temporary messages in edit modal
+function showEditMessage(message, type) {
+	const messageDiv = document.getElementById('editFormMessage');
+	messageDiv.textContent = message;
+	messageDiv.className = 'form-message ' + type;
+	if (type !== 'success') {
+		setTimeout(() => {
+			messageDiv.textContent = '';
+			messageDiv.className = 'form-message';
+		}, 3000);
+	}
 }
 
 //searches orders by customer name or hotdog name (pending only)
@@ -218,6 +366,7 @@ async function searchOrders() {
 				<p class="hotdog-description">Qty: ${order.quantity} · Unit: $${order.unitPrice.toFixed(2)} · Status: ${order.status}</p>
 				${order.notes ? `<p class="hotdog-description"><strong>Notes:</strong> ${order.notes}</p>` : ''}
 				<div class="hotdog-actions">
+					<button type="button" class="btn btn-small btn-edit edit-order-btn" data-order-id="${order.id}">Edit</button>
 					<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="${order.id}">Cancel</button>
 				</div>
 			</div>
