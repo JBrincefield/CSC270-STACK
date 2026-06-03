@@ -14,7 +14,7 @@ Set-Location stackApp
 
 @'
 FIREBASE_CREDENTIALS=csc270-stackapp-firebase-adminsdk-fbsvc-f472f3aa80.json
-FIREBASE_WEB_API_KEY=IzaSyCpqDmP4pWuPnT16n5MAg-LusP0wkqxcxA
+FIREBASE_WEB_API_KEY=AIzaSyCpqDmP4pWuPnT16n5MAg-LusP0wkqxcxA
 FIREBASE_AUTH_DOMAIN=csc270-stackapp.firebaseapp.com
 FIREBASE_PROJECT_ID=csc270-stackapp
 FIREBASE_STORAGE_BUCKET=csc270-stackapp.firebasestorage.app
