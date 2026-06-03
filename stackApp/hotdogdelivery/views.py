@@ -149,17 +149,8 @@ def auth_session(request):
 
     try:
         decoded = auth_utils.verify_id_token(token)
-        record = auth_utils.get_user_record(decoded.get('uid', ''))
-        claims = record.custom_claims or {}
-        request.session['firebase_user'] = {
-            'uid': record.uid,
-            'email': record.email or decoded.get('email', ''),
-            'displayName': record.display_name or decoded.get('name') or decoded.get('email', ''),
-            'photoURL': record.photo_url or decoded.get('picture', ''),
-            'isAdmin': auth_utils.is_admin_claim(claims or decoded),
-        }
-        request.session.set_expiry(60 * 60 * 24 * 7)
-        return JsonResponse({'user': request.session['firebase_user']})
+        user = auth_utils.set_session_user(request, decoded)
+        return JsonResponse({'user': user})
     except Exception as exc:
         logger.exception('Failed to establish Firebase session: %s', exc)
         return JsonResponse({'error': 'Unable to sign in'}, status=401)

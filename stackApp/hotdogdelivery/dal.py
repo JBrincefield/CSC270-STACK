@@ -51,6 +51,19 @@ def init_app():
                 # try default app (e.g., when running in GCP with ADC)
                 firebase_admin.initialize_app()
 
+            # Firestore uses gRPC which hangs indefinitely on auth failures.
+            # Probe credentials now with a fast REST call; if the service
+            # account key is invalid the RefreshError surfaces here in ~500ms
+            # instead of on every subsequent Firestore query.
+            import google.auth.exceptions
+            from firebase_admin import auth as _fb_auth
+            try:
+                _fb_auth.get_user('__cred_check__')
+            except google.auth.exceptions.RefreshError:
+                raise  # broken credentials — skip Firestore
+            except Exception:
+                pass  # UserNotFoundError etc. — credentials are fine
+
             _client = firestore.client()
             _use_firestore = True
         except Exception:
