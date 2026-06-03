@@ -1,34 +1,19 @@
 
-# Hotdog Delivery Application — Instructor Quick Start
+# Hotdog Delivery Application — Quick Start
 
-This is a small Django 6 web application for placing playful "hotdog" orders. It supports
-two data backends:
+A Django 6 web app for placing hotdog orders with Firebase email/password authentication, Firestore persistence, and role-based access (users see their own orders; admins see all orders and can update status).
 
-- Firestore via the Firebase Admin SDK (persistent) — used when you point the app at a
-  service account JSON file via the FIREBASE_CREDENTIALS environment variable.
-- An in-memory fallback (non-persistent) used when Firestore is not configured.
+---
 
-This README is streamlined for an instructor who wants to install and run the app locally
-— including using the included Firebase credentials JSON to enable persistence.
+## Fast Start (Windows PowerShell)
 
-Checklist:
-
-1. Prepare environment (Python + virtualenv)
-2. Install Python dependencies
-3. (Optional) Configure Firebase credentials JSON and point the app to it
-4. Run the Django development server and verify
-
-If you just want to get the app running quickly, follow the "Fast Start" section. If you
-want more explanation about each step, read the subsequent sections.
-
-Fast Start (Windows PowerShell)
-1. Open PowerShell and change to the project folder:
+### 1 — Navigate to the project folder
 
 ```powershell
 cd C:\NEU\Y3\Q3\CSC270-S2\repository\stackApp
 ```
 
-2. Create and activate a virtual environment (isolates dependencies):
+### 2 — Create and activate a virtual environment
 
 ```powershell
 python -m venv .venv
@@ -36,116 +21,158 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
 .\.venv\Scripts\Activate.ps1
 ```
 
-3. Install required Python packages:
+### 3 — Install dependencies
 
 ```powershell
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-4. (Optional, to persist orders) Point the app at the included Firebase credentials JSON and start the server.
-   - Example (this repository includes `csc270-stackapp-firebase-adminsdk-fbsvc-f472f3aa80.json` at the repo root):
+### 4 — Apply database migrations (needed for sessions)
 
-This is an optional step, but required for Phase 3 of CSC270. You can bypass the firebase-setup and use in-memory storage.
-This path should work on the root, but if you move the JSON file or want to use your own, update the path accordingly. The key is that the environment variable must be set in the same shell session where you start the server.
 ```powershell
-$env:FIREBASE_CREDENTIALS = "csc270-stackapp-firebase-adminsdk-fbsvc-f472f3aa80.json"
-py manage.py runserver
+py manage.py migrate
 ```
 
-5. Without Firebase (in-memory fallback) just run:
+### 5 — Start the server
+
+The `.env` file in this folder already contains all required credentials. Just run:
 
 ```powershell
 py manage.py runserver
 ```
 
-6. Open the app in your browser:
+### 6 — Open the app
 
+```
 http://127.0.0.1:8000/
-
-What each step does (brief explanations)
-- python -m venv .venv — creates an isolated virtual environment so package installs don't affect your system Python.
-- Activate.ps1 — activates the venv for the current PowerShell session.
-- pip install -r requirements.txt — installs Django, firebase-admin (optional), requests, and any other dependencies listed in the file.
-- Setting $env:FIREBASE_CREDENTIALS — tells the app where to find the Firebase service account JSON so the DAL can initialize firebase_admin and connect to Firestore. If this variable is not set or initialization fails, the app uses an in-memory list for orders.
-- py manage.py runserver — starts Django's development server on http://127.0.0.1:8000/.
-
-Notes about the included Firebase JSON
-- This repository includes `csc270-stackapp-firebase-adminsdk-fbsvc-f472f3aa80.json`. If you set
-  FIREBASE_CREDENTIALS to its absolute path before starting the server, the app will use Firestore
-  to store orders persistently (they will remain after a server restart).
-- Security: in production you should NOT commit secrets to the repository. For this assignment the
-  file is included for convenience. If you use your own credentials, store them somewhere safe
-  (outside the repo) and point FIREBASE_CREDENTIALS to that file.
-
-Verify Firestore persistence (quick test)
-1. Start the server with FIREBASE_CREDENTIALS set (see Fast Start step 4).
-2. Create an order in the web UI or with this PowerShell command in another shell:
-
-```powershell
-$body = @{
-  customerName = "Test User"
-  hotdogName = "Chicago"
-  unitPrice = 5.99
-  quantity = 2
-  notes = "Extra mustard"
-} | ConvertTo-Json
-
-Invoke-WebRequest -Uri "http://localhost:8000/api/orders/" -Method POST -Body $body -ContentType "application/json"
 ```
 
-3. Open the Firebase Console -> Firestore and inspect the `orders` collection — you should see the test order.
-4. Stop the server (Ctrl+C) and restart it; the order should still be present if Firestore was used.
+---
 
-Project structure (important files)
+## Environment variables (`.env`)
+
+All configuration lives in `stackApp/.env`. The file is already populated for this project:
+
+| Variable | Purpose |
+|----------|---------|
+| `FIREBASE_CREDENTIALS` | Path to the Firebase Admin SDK service account JSON (relative to `stackApp/`) |
+| `FIREBASE_WEB_API_KEY` | Firebase web API key (used by the browser SDK and server-side token verification) |
+| `FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
+| `FIREBASE_PROJECT_ID` | Firebase project ID |
+| `FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
+| `FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
+| `FIREBASE_APP_ID` | Firebase app ID |
+
+`settings.py` loads this file automatically via `python-dotenv` on startup.
+
+---
+
+## Authentication
+
+The app uses **Firebase Authentication with email and password**.
+
+- Visiting `/order/` without being signed in redirects to the login page.
+- Use **Sign In** to log in with an existing account, or **Create Account** to register.
+- After sign-in, the server verifies the Firebase ID token against the Firebase REST API and creates a Django session.
+- The navbar shows your name and a **Log Out** button on every page.
+
+### User roles
+
+| Role | What they see | What they can do |
+|------|--------------|-----------------|
+| Regular user | Their own orders only | Place orders, edit their own orders (hotdog, qty, price, notes). Customer name is locked to their account name. |
+| Admin | All orders from all users | Everything above + change order status (including marking as **Completed**) + edit customer name |
+
+### Order statuses
+
+| Status | Meaning |
+|--------|---------|
+| `pending` | Just placed, awaiting processing |
+| `processing` | Being prepared |
+| `ready` | Ready for pickup/delivery |
+| `delivered` | Delivered to customer |
+| `completed` | Admin-confirmed complete — appears on the public Review Wall on the home page |
+| `cancelled` | Cancelled |
+
+Only an admin can set an order to **Completed**. Once completed, the order appears on the home page Review Wall where any logged-in user can leave a 👍 or 👎.
+
+### Making a user an admin
+
+1. Sign in at least once so the user exists in Firebase Auth.
+2. Find their Firebase UID: **Firebase Console → Authentication → Users → copy the UID** column.
+3. Open **Firestore Console → Data → `admins` collection** (create it if it doesn't exist).
+4. Add a new document with a single field:
+   ```
+   uid: <paste-uid-here>   (type: string)
+   ```
+5. Sign out and sign back in — admin status is checked at login. The navbar will show an **Admin** badge and the Order page will display all users' orders.
+
+> **In-memory fallback (no Firebase):** call `dal.add_admin_uid("<uid>")` in a Django shell to grant admin access for the current server process.
+
+---
+
+## Project structure
 
 ```
 stackApp/
+├── .env                        # credentials and config (loaded automatically)
 ├── manage.py
 ├── requirements.txt
+├── csc270-stackapp-aa78c-firebase-adminsdk-fbsvc-cb27161275.json   # Admin SDK service account
 ├── hotdogdelivery/
-│   ├── dal.py            # data access layer: Firestore or in-memory
-│   ├── views.py          # routes and API endpoints
-│   ├── templates/        # HTML templates
-│   └── static/           # static assets (images, CSS)
-└── stackApp/             # Django project settings
+│   ├── dal.py                  # Firestore or in-memory data access + admin checks
+│   ├── views.py                # page views + REST API + auth endpoints
+│   ├── context_processors.py   # injects current_user into every template
+│   ├── templates/              # HTML templates
+│   └── static/                 # CSS and images
+└── stackApp/
+    ├── settings.py             # Django settings — loads .env on startup
+    └── urls.py
 ```
 
-API endpoints (useful for testing)
-- GET  /api/orders/        — list all orders
-- POST /api/orders/        — create a new order
-- GET  /api/orders/<id>/   — view one order
-- PUT  /api/orders/<id>/   — update one order
-- DELETE /api/orders/<id>/ — delete one order
-- GET /api/kanye/          — returns a Kanye quote (or fallback)
+---
 
-Data behavior summary
-- If FIREBASE_CREDENTIALS is set and firebase_admin initializes successfully, orders are
-  stored in Firestore and persist across server restarts.
-- If FIREBASE_CREDENTIALS is not set or initialization fails, the DAL uses an in-memory list and
-  orders are lost when the server restarts. The API and UI behave the same in either case.
+## API endpoints
 
-Troubleshooting (common problems and quick fixes)
-- "ModuleNotFoundError: No module named 'firebase_admin'" — activate your venv and run `pip install -r requirements.txt`.
-- Server logs show Firestore initialization errors — check the value of `$env:FIREBASE_CREDENTIALS` in the same shell where you started the server and ensure the path is absolute and readable.
-- Still seeing in-memory behavior despite setting FIREBASE_CREDENTIALS — ensure the var is set in the *same* shell session before starting the server (environment variables are read at process start).
+All order endpoints require an authenticated session (sign in via the UI first).
 
-Extras (make FIREBASE_CREDENTIALS persistent)
-- Persist for your user (Windows):
+| Method | URL | Description |
+|--------|-----|-------------|
+| `POST` | `/api/auth/verify/` | Exchange a Firebase ID token for a Django session |
+| `POST` | `/api/auth/logout/` | Clear the Django session |
+| `GET` | `/api/orders/` | List orders (own orders, or all for admins) |
+| `POST` | `/api/orders/` | Create a new order |
+| `GET` | `/api/orders/<id>/` | Get a single order |
+| `PUT` | `/api/orders/<id>/` | Update an order (status and customerName are admin-only fields) |
+| `DELETE` | `/api/orders/<id>/` | Cancel an order |
+| `POST` | `/api/orders/<id>/review/` | Like or dislike a completed order (`{"reaction": "like"\|"dislike"}`) |
+| `GET` | `/api/kanye/` | Random Kanye quote |
 
-```powershell
-setx FIREBASE_CREDENTIALS "C:\path\to\your\service-account.json"
-# then open a new PowerShell session for the change to take effect
-```
+---
 
-- Or create a small startup script `run-with-firebase.ps1` in `stackApp` that sets the env var, activates the venv, and starts the server.
+## Firebase configuration
 
-If you'd like, I can also:
-- Add a short `run-with-firebase.ps1` into the repository that uses the included JSON (for instructor convenience), or
-- Produce a one-page cheat sheet with the exact PowerShell commands tailored to your machine.
+Token verification uses the Firebase REST `accounts:lookup` endpoint — only the web API key is required. The Admin SDK service account (`FIREBASE_CREDENTIALS`) is used for Firestore persistence and admin lookups; if it is missing, the app falls back to in-memory storage.
 
+Both backends use the same Firebase project: **csc270-stackapp**.
 
-# Authors
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `ModuleNotFoundError: No module named 'firebase_admin'` | Activate your venv and run `pip install -r requirements.txt` |
+| `ModuleNotFoundError: No module named 'dotenv'` | Activate your venv and run `pip install -r requirements.txt` |
+| Orders not persisting after restart | Check that `FIREBASE_CREDENTIALS` in `.env` points to the correct JSON file |
+| Sign-in or sign-up shows "Authentication failed" | The Firebase web API key in `.env` may be wrong or Email/Password auth is not enabled in the Firebase Console |
+| Sign-in times out | Check your internet connection — token verification calls the Firebase REST API |
+| User not recognised as admin after Firestore change | Sign out and sign back in to refresh the session |
+
+---
+
+## Authors
 - **Ethan Townsend** [(snxethan)](https://www.ethantownsend.dev)
 - **Jacob Brincefield** [(jbrincefield)](https://www.jacobbrincefield.com)
 - **Tommy Southerland** [(Tomonator1000)](https://www.weenie.com)

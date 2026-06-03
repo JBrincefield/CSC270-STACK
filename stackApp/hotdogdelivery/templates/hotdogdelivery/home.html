@@ -29,4 +29,97 @@
 		{% endif %}
 	</div>
 </section>
+
+{% if current_user %}
+<!-- ── Your Orders ── -->
+<section class="snap-section">
+	<div class="home-panel">
+		<h2>📦 Your Orders</h2>
+		{% if user_orders %}
+		<div class="home-orders-list">
+			{% for order in user_orders %}
+			<div class="home-order-card">
+				<div class="home-order-header">
+					<span class="home-order-name">{{ order.hotdogName }}</span>
+					<span class="status-badge status-{{ order.status }}">{{ order.status|title }}</span>
+				</div>
+				<div class="home-order-meta">
+					Qty: {{ order.quantity }} · ${{ order.totalPrice|floatformat:2 }}
+					{% if order.notes %} · <em>{{ order.notes|truncatechars:60 }}</em>{% endif %}
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+		{% else %}
+		<p class="empty-message">You haven't placed any orders yet. <a href="{% url 'order' %}">Order now →</a></p>
+		{% endif %}
+	</div>
+</section>
+{% endif %}
+
+{% if completed_orders %}
+<!-- ── Completed Orders Review Wall ── -->
+<section class="snap-section">
+	<div class="home-panel">
+		<h2>⭐ Completed Orders — Leave a Review</h2>
+		<p style="text-align:center; margin-top:-12px;">{% if current_user %}React to orders below with 👍 or 👎{% else %}<a href="{% url 'login' %}">Sign in</a> to leave a reaction{% endif %}</p>
+		<div class="review-wall">
+			{% for order in completed_orders %}
+			<div class="review-card" id="review-card-{{ order.id }}">
+				<div class="review-card-title">{{ order.customerName }}'s {{ order.hotdogName }}</div>
+				<div class="review-card-meta">Qty {{ order.quantity }} · ${{ order.totalPrice|floatformat:2 }}</div>
+				{% if order.notes %}
+				<div class="review-card-notes">{{ order.notes|truncatechars:80 }}</div>
+				{% endif %}
+				<div class="review-actions">
+					{% if current_user %}
+					<button class="btn-reaction {% if order.userReaction == 'like' %}btn-reaction--active{% endif %}"
+							onclick="reactToOrder({{ order.id }}, 'like', this)"
+							data-order="{{ order.id }}" data-reaction="like">
+						👍 <span id="likes-{{ order.id }}">{{ order.likes }}</span>
+					</button>
+					<button class="btn-reaction {% if order.userReaction == 'dislike' %}btn-reaction--active{% endif %}"
+							onclick="reactToOrder({{ order.id }}, 'dislike', this)"
+							data-order="{{ order.id }}" data-reaction="dislike">
+						👎 <span id="dislikes-{{ order.id }}">{{ order.dislikes }}</span>
+					</button>
+					{% else %}
+					<span class="reaction-readonly">👍 {{ order.likes }}</span>
+					<span class="reaction-readonly">👎 {{ order.dislikes }}</span>
+					{% endif %}
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+	</div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function reactToOrder(orderId, reaction, btn) {
+	try {
+		const resp = await fetch(`/api/orders/${orderId}/review/`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ reaction }),
+		});
+		if (resp.status === 401) { window.location.href = '/login/?next=/'; return; }
+		const data = await resp.json();
+		if (!resp.ok) { console.error(data.error); return; }
+
+		document.getElementById(`likes-${orderId}`).textContent    = data.likes;
+		document.getElementById(`dislikes-${orderId}`).textContent = data.dislikes;
+
+		// Update active state on both buttons for this order
+		document.querySelectorAll(`[data-order="${orderId}"]`).forEach(b => {
+			b.classList.toggle('btn-reaction--active', b.dataset.reaction === data.userReaction);
+		});
+	} catch (err) {
+		console.error('Review error:', err);
+	}
+}
+</script>
 {% endblock %}

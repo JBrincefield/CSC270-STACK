@@ -10,10 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -62,6 +66,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'hotdogdelivery.context_processors.firebase_context',
             ],
         },
     },
@@ -120,3 +125,38 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'hotdogdelivery' / 'static',
 ]
+
+# Console logging — shows INFO+ from the hotdogdelivery app (Firebase init status, etc.)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'formatters': {
+        'simple': {
+            'format': '[{levelname}] {name}: {message}',
+            'style': '{',
+        },
+    },
+    'loggers': {
+        'hotdogdelivery': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# Firebase web SDK config — loaded from .env
+FIREBASE_WEB_CONFIG = {
+    'apiKey':            os.environ.get('FIREBASE_WEB_API_KEY', ''),
+    'authDomain':        os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
+    'projectId':         os.environ.get('FIREBASE_PROJECT_ID', ''),
+    'storageBucket':     os.environ.get('FIREBASE_STORAGE_BUCKET', ''),
+    'messagingSenderId': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+    'appId':             os.environ.get('FIREBASE_APP_ID', ''),
+}

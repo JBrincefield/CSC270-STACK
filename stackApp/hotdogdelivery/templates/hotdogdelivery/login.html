@@ -1,0 +1,213 @@
+{% extends 'hotdogdelivery/base.html' %}
+{% load static %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<section class="snap-section hero">
+	<div class="login-wall">
+		<div class="login-card">
+			<h2 id="authTitle">Sign In</h2>
+
+			<div class="auth-tabs">
+				<button type="button" class="auth-tab auth-tab--active" onclick="switchTab('signin')">Sign In</button>
+				<button type="button" class="auth-tab" onclick="switchTab('signup')">Create Account</button>
+			</div>
+
+			{% if not firebase_config.apiKey %}
+			<div class="form-message error">
+				Firebase is not configured — contact the site administrator.
+			</div>
+			{% else %}
+
+			<!-- ── Sign In form ── -->
+			<form id="signinForm" class="create-form">
+				<div class="form-group">
+					<label for="signinEmail">Email</label>
+					<input type="email" id="signinEmail" placeholder="you@example.com" autocomplete="email" required>
+				</div>
+				<div class="form-group">
+					<label for="signinPassword">Password</label>
+					<input type="password" id="signinPassword" placeholder="Password" autocomplete="current-password" required>
+				</div>
+				<button type="submit" class="btn btn-create" id="signinBtn">Sign In</button>
+			</form>
+
+			<!-- ── Create Account form ── -->
+			<form id="signupForm" class="create-form" style="display:none;">
+				<div class="form-group">
+					<label for="signupName">Display Name</label>
+					<input type="text" id="signupName" placeholder="Your name" autocomplete="name" required>
+				</div>
+				<div class="form-group">
+					<label for="signupEmail">Email</label>
+					<input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email" required>
+				</div>
+				<div class="form-group">
+					<label for="signupPassword">Password</label>
+					<input type="password" id="signupPassword" placeholder="At least 6 characters" autocomplete="new-password" required>
+				</div>
+				<button type="submit" class="btn btn-create" id="signupBtn">Create Account</button>
+			</form>
+
+			{% endif %}
+
+			<div id="authMessage" class="form-message" style="margin-top:14px;"></div>
+		</div>
+	</div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if firebase_config.apiKey %}
+<script>
+const NEXT_URL       = "{{ next|default:'/order/'|escapejs }}";
+const FB_API_KEY     = "{{ firebase_config.apiKey }}";
+const FB_API_BASE    = "https://identitytoolkit.googleapis.com/v1/accounts";
+
+/* ── Tab switcher ── */
+function switchTab(tab) {
+	const isSigning = tab === 'signin';
+	document.getElementById('signinForm').style.display = isSigning ? '' : 'none';
+	document.getElementById('signupForm').style.display = isSigning ? 'none' : '';
+	document.getElementById('authTitle').textContent    = isSigning ? 'Sign In' : 'Create Account';
+	document.querySelectorAll('.auth-tab').forEach((btn, i) => {
+		btn.classList.toggle('auth-tab--active', isSigning ? i === 0 : i === 1);
+	});
+	clearMessage();
+}
+
+function clearMessage() {
+	const el = document.getElementById('authMessage');
+	el.textContent = '';
+	el.className = 'form-message';
+}
+
+function showError(msg) {
+	const el = document.getElementById('authMessage');
+	el.textContent = msg;
+	el.className = 'form-message error';
+}
+
+/* Maps Firebase REST API error codes to friendly messages */
+function friendlyError(code) {
+	const map = {
+		'EMAIL_NOT_FOUND':              'No account found with that email.',
+		'INVALID_PASSWORD':             'Incorrect password.',
+		'INVALID_LOGIN_CREDENTIALS':    'Incorrect email or password.',
+		'USER_DISABLED':                'This account has been disabled.',
+		'EMAIL_EXISTS':                 'An account with that email already exists.',
+		'WEAK_PASSWORD':                'Password must be at least 6 characters.',
+		'TOO_MANY_ATTEMPTS_TRY_LATER':  'Too many attempts — please try again later.',
+		'OPERATION_NOT_ALLOWED':        'Email/Password sign-in is not enabled in Firebase Console.',
+		'INVALID_API_KEY':              'Firebase API key is invalid. Check settings.py.',
+	};
+	if (!code) return 'Something went wrong. Please try again.';
+	// Firebase sometimes appends extra detail after a colon, e.g. "WEAK_PASSWORD : ..."
+	const base = code.split(' ')[0].split(':')[0].trim();
+	return map[base] || `Error: ${code}`;
+}
+
+/* ── Firebase REST helpers ── */
+async function fbRequest(endpoint, body) {
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), 12000);
+	try {
+		const resp = await fetch(`${FB_API_BASE}:${endpoint}?key=${FB_API_KEY}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+			signal: controller.signal,
+		});
+		const data = await resp.json();
+		if (!resp.ok) throw new Error(data.error?.message || 'Unknown error');
+		return data;
+	} catch (err) {
+		if (err.name === 'AbortError') throw new Error('Request timed out — check your internet connection.');
+		throw err;
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
+async function sendTokenToServer(idToken) {
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), 15000);
+	try {
+		const resp = await fetch('/api/auth/verify/', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ idToken }),
+			signal: controller.signal,
+		});
+		if (!resp.ok) {
+			const err = await resp.json();
+			throw new Error(err.error || 'Server rejected the token.');
+		}
+	} catch (err) {
+		if (err.name === 'AbortError') throw new Error('Server took too long to respond — please try again.');
+		throw err;
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
+/* ── Sign In ── */
+document.getElementById('signinForm').addEventListener('submit', async (e) => {
+	e.preventDefault();
+	const btn = document.getElementById('signinBtn');
+	btn.disabled = true;
+	btn.textContent = 'Signing in…';
+	clearMessage();
+	try {
+		const data = await fbRequest('signInWithPassword', {
+			email:             document.getElementById('signinEmail').value,
+			password:          document.getElementById('signinPassword').value,
+			returnSecureToken: true,
+		});
+		await sendTokenToServer(data.idToken);
+		window.location.href = NEXT_URL;
+	} catch (err) {
+		showError(friendlyError(err.message));
+		btn.disabled = false;
+		btn.textContent = 'Sign In';
+	}
+});
+
+/* ── Create Account ── */
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+	e.preventDefault();
+	const btn  = document.getElementById('signupBtn');
+	const name = document.getElementById('signupName').value.trim();
+	btn.disabled = true;
+	btn.textContent = 'Creating account…';
+	clearMessage();
+	try {
+		// 1. Create the account
+		const created = await fbRequest('signUp', {
+			email:             document.getElementById('signupEmail').value,
+			password:          document.getElementById('signupPassword').value,
+			returnSecureToken: true,
+		});
+		// 2. Set the display name and get a fresh token that includes it
+		let idToken = created.idToken;
+		if (name) {
+			const updated = await fbRequest('update', {
+				idToken,
+				displayName:       name,
+				returnSecureToken: true,
+			});
+			idToken = updated.idToken || idToken;
+		}
+		// 3. Establish Django session
+		await sendTokenToServer(idToken);
+		window.location.href = NEXT_URL;
+	} catch (err) {
+		showError(friendlyError(err.message));
+		btn.disabled = false;
+		btn.textContent = 'Create Account';
+	}
+});
+</script>
+{% endif %}
+{% endblock %}

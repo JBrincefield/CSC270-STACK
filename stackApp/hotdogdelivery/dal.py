@@ -1,4 +1,4 @@
-﻿"""Data Access Layer (DAL) for orders.
+"""Data Access Layer (DAL) for orders.
 
 This module provides a thin abstraction over either Firestore (when
 Firebase credentials are available) or a simple in-memory fallback store
@@ -8,11 +8,18 @@ being used.
 
 The in-memory store is intentionally lightweight and not meant for
 production use.
+
+Admin users are stored in a Firestore `admins` collection. Each document
+must contain a `uid` field matching the Firebase Auth UID.  For the
+in-memory fallback, call add_admin_uid(uid) to grant admin access.
 """
 
 import os
+import logging
 import threading
 from copy import deepcopy
+
+logger = logging.getLogger(__name__)
 
 _initialized = False
 _use_firestore = False
@@ -21,6 +28,8 @@ _lock = threading.Lock()
 
 # Simple in-memory fallback store so the app still runs if Firebase isn't configured
 _in_memory_store = []
+_admin_uids = set()  # in-memory admin UID store for the fallback backend
+_reviews_store = []  # in-memory reviews: [{orderId, userId, reaction}]
 
 
 def init_app():
@@ -52,17 +61,24 @@ def init_app():
 
             _client = firestore.client()
             _use_firestore = True
-        except Exception:
-            # If anything goes wrong, keep using the in-memory store
+            logger.info('Firebase Admin SDK initialised — Firestore backend active (project: csc270-stackapp-aa78c)')
+        except Exception as exc:
             _use_firestore = False
             _client = None
+            logger.warning('Firebase Admin SDK failed to initialise — using in-memory fallback (%s)', exc)
         _initialized = True
+
+
+def is_firebase_ready():
+    """Return True if the Firebase Admin SDK is initialized and usable."""
+    return _initialized and _use_firestore and _client is not None
 
 
 def _doc_to_order(doc):
     data = doc.to_dict()
     return {
         'id': int(data.get('id')) if data.get('id') is not None else None,
+        'userId': data.get('userId', ''),
         'customerName': data.get('customerName', ''),
         'hotdogName': data.get('hotdogName', ''),
         'unitPrice': float(data.get('unitPrice', 0.0)),
@@ -81,6 +97,39 @@ def get_all_orders():
 
     # fallback
     return deepcopy(_in_memory_store)
+
+
+def get_orders_by_user(user_id):
+    """Return only the orders that belong to the given Firebase UID."""
+    init_app()
+    if _use_firestore and _client is not None:
+        coll = _client.collection('orders')
+        docs = coll.where('userId', '==', user_id).stream()
+        return [_doc_to_order(d) for d in docs]
+
+    # fallback
+    return deepcopy([o for o in _in_memory_store if o.get('userId') == user_id])
+
+
+def is_admin(uid):
+    """Return True if the given Firebase UID belongs to an admin.
+
+    Firestore: checks the `admins` collection for a document with uid == uid.
+    In-memory: checks the _admin_uids set (populated via add_admin_uid).
+    """
+    init_app()
+    if _use_firestore and _client is not None:
+        docs = _client.collection('admins').where('uid', '==', uid).limit(1).stream()
+        for _ in docs:
+            return True
+        return False
+
+    return uid in _admin_uids
+
+
+def add_admin_uid(uid):
+    """Grant admin access for the in-memory fallback (dev/test only)."""
+    _admin_uids.add(uid)
 
 
 def _find_doc_snapshot_by_id(order_id):
@@ -202,3 +251,72 @@ def delete_order(order_id):
             return True
     return False
 
+
+# ---------------------------------------------------------------------------
+# Reviews
+# ---------------------------------------------------------------------------
+
+def get_completed_orders():
+    """Return all orders with status 'completed'."""
+    init_app()
+    if _use_firestore and _client is not None:
+        docs = _client.collection('orders').where('status', '==', 'completed').stream()
+        return [_doc_to_order(d) for d in docs]
+    return deepcopy([o for o in _in_memory_store if o.get('status') == 'completed'])
+
+
+def get_reviews_for_order(order_id):
+    """Return list of {userId, reaction} dicts for the given order."""
+    init_app()
+    if _use_firestore and _client is not None:
+        docs = _client.collection('reviews').where('orderId', '==', int(order_id)).stream()
+        return [{'userId': d.to_dict().get('userId'), 'reaction': d.to_dict().get('reaction')} for d in docs]
+    return deepcopy([
+        {'userId': r['userId'], 'reaction': r['reaction']}
+        for r in _reviews_store if r.get('orderId') == int(order_id)
+    ])
+
+
+def get_user_review(order_id, user_id):
+    """Return the user's reaction ('like'/'dislike') for an order, or None."""
+    init_app()
+    if _use_firestore and _client is not None:
+        docs = (
+            _client.collection('reviews')
+            .where('orderId', '==', int(order_id))
+            .where('userId', '==', user_id)
+            .limit(1)
+            .stream()
+        )
+        for d in docs:
+            return d.to_dict().get('reaction')
+        return None
+    for r in _reviews_store:
+        if r.get('orderId') == int(order_id) and r.get('userId') == user_id:
+            return r.get('reaction')
+    return None
+
+
+def upsert_review(order_id, user_id, reaction):
+    """Add or update a user's like/dislike on an order."""
+    init_app()
+    if _use_firestore and _client is not None:
+        coll = _client.collection('reviews')
+        docs = list(
+            coll.where('orderId', '==', int(order_id))
+            .where('userId', '==', user_id)
+            .limit(1)
+            .stream()
+        )
+        if docs:
+            docs[0].reference.update({'reaction': reaction})
+        else:
+            coll.add({'orderId': int(order_id), 'userId': user_id, 'reaction': reaction})
+        return True
+    # in-memory fallback
+    for r in _reviews_store:
+        if r.get('orderId') == int(order_id) and r.get('userId') == user_id:
+            r['reaction'] = reaction
+            return True
+    _reviews_store.append({'orderId': int(order_id), 'userId': user_id, 'reaction': reaction})
+    return True

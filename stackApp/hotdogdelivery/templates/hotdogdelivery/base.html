@@ -14,7 +14,7 @@
     </style>
     <link rel="stylesheet" href="{% static 'hotdogdelivery/styles.css' %}">
 </head>
-<body>
+<body data-logged-in="{% if current_user %}true{% else %}false{% endif %}">
     <header>
         {% include 'hotdogdelivery/_navbar.html' %}
     </header>
@@ -208,5 +208,21 @@
             }, true);
         })();
     </script>
+
+    <script>
+    /* Clears the Django session and returns to home. No Firebase SDK needed. */
+    async function signOutUser() {
+        try {
+            await fetch('/api/auth/logout/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+            });
+        } catch (e) { /* ignore */ }
+        window.location.href = '/';
+    }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>
