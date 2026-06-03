@@ -10,10 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -62,6 +67,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'hotdogdelivery.auth_utils.firebase_context_processor',
             ],
         },
     },
@@ -120,3 +126,23 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'hotdogdelivery' / 'static',
 ]
+
+FIREBASE_WEB_API_KEY = os.environ.get('FIREBASE_WEB_API_KEY', '')
+FIREBASE_AUTH_DOMAIN = os.environ.get('FIREBASE_AUTH_DOMAIN', '')
+FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', '')
+FIREBASE_APP_ID = os.environ.get('FIREBASE_APP_ID', '')
+FIREBASE_MESSAGING_SENDER_ID = os.environ.get('FIREBASE_MESSAGING_SENDER_ID', '')
+FIREBASE_STORAGE_BUCKET = os.environ.get('FIREBASE_STORAGE_BUCKET', '')
+
+FIREBASE_WEB_CONFIG = {
+    'apiKey': FIREBASE_WEB_API_KEY,
+    'authDomain': FIREBASE_AUTH_DOMAIN,
+    'projectId': FIREBASE_PROJECT_ID,
+    'appId': FIREBASE_APP_ID,
+    'messagingSenderId': FIREBASE_MESSAGING_SENDER_ID,
+    'storageBucket': FIREBASE_STORAGE_BUCKET,
+}
+
+FIREBASE_WEB_CONFIG_READY = bool(
+    FIREBASE_WEB_API_KEY and FIREBASE_AUTH_DOMAIN and FIREBASE_PROJECT_ID and FIREBASE_APP_ID
+)

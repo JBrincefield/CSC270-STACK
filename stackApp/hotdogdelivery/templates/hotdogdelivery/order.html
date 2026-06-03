@@ -1,28 +1,41 @@
 {% extends 'hotdogdelivery/base.html' %}
 {% load static %}
 
-{% block title %}Place Your Order{% endblock %}
+{% block title %}Your Orders{% endblock %}
 
 {% block content %}
-<section class="snap-section hero order-hero">
+<section class="snap-section order-hero">
 	<div class="order-wrapper">
-		<h1>🌭 Ready to Order? 🌭</h1>
+		<div class="order-header">
+			<div>
+				<span class="mission-eyebrow">Membership</span>
+				<h1>Your hotdog dashboard</h1>
+				<p>
+					Signed in as <strong>{{ viewer_label }}</strong>{% if viewer_is_admin %} with admin access{% endif %}.
+					Only your orders are loaded here unless your account has the admin claim.
+				</p>
+			</div>
+			<div class="order-session-pill">
+				<span>{{ viewer_label }}</span>
+				{% if viewer_is_admin %}<span class="nav-role-badge">Admin</span>{% endif %}
+			</div>
+		</div>
 
 		<div class="mascot-section">
 			<img src="{% static 'hotdogdelivery/kanye.png' %}" alt="Kanye West - Our Mascot" class="mascot-image">
-			<p class="mascot-text"><strong>Kanye West</strong> & <strong>Jones BBQ and Foot Massage</strong><br><em>Our Official Mascots</em></p>
+			<p class="mascot-text"><strong>Kanye West</strong> &amp; <strong>Jones BBQ and Foot Massage</strong><br><em>Our Official Mascots</em></p>
 		</div>
 
 		<div class="order-purchase-panel">
-			<h2>🛒 Purchase Builder 🛒</h2>
+			<h2>New order</h2>
 
 			<div class="hotdog-create-container">
 				<div class="create-form-box">
 					<h2>Checkout Details</h2>
 					<form id="purchaseHotdogForm" class="create-form">
 						<div class="form-group">
-							<label for="customerName">Customer Name</label>
-							<input type="text" id="customerName" name="customerName" placeholder="e.g., Ethan Townsend" required>
+							<label for="customerName">Account Name</label>
+							<input type="text" id="customerName" name="customerName" value="{{ viewer_label }}" readonly>
 						</div>
 
 						<div class="form-group">
@@ -51,12 +64,13 @@
 				</div>
 
 				<div class="hotdogs-list-box">
-					<h2>Recent Orders (<span id="orderCount">{{ orders|length }}</span>)</h2>
-
-					<div class="search-section" style="margin-bottom: 15px; display: flex; gap: 10px;">
-						<input type="text" id="searchInput" placeholder="Search by customer or hotdog name..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-						<button type="button" class="btn btn-small" onclick="searchOrders()">Search Pending</button>
-						<button type="button" class="btn btn-small" onclick="loadOrders()" style="background-color: #666;">Clear</button>
+					<div class="list-toolbar">
+						<h2>Recent Orders (<span id="orderCount">{{ orders|length }}</span>)</h2>
+						<div class="search-section">
+							<input type="text" id="searchInput" placeholder="Search your orders...">
+							<button type="button" class="btn btn-small" id="searchButton">Search</button>
+							<button type="button" class="btn btn-small btn-secondary" id="clearButton">Clear</button>
+						</div>
 					</div>
 
 					<div id="ordersList" class="hotdogs-list">
@@ -64,13 +78,31 @@
 							{% for order in orders %}
 								<div class="hotdog-card" data-id="{{ order.id }}">
 									<div class="hotdog-card-header">
-										<h3>{{ order.customerName }} — {{ order.hotdogName }}</h3>
+										<h3>{{ order.hotdogName }}</h3>
 										<span class="hotdog-price">${{ order.totalPrice|floatformat:2 }}</span>
 									</div>
-									<p class="hotdog-description">Qty: {{ order.quantity }} · Unit: ${{ order.unitPrice|floatformat:2 }} · Status: {{ order.status|title }}</p>
+									<p class="hotdog-description">Owner: {{ order.ownerDisplayName|default:order.customerName }} · Qty: {{ order.quantity }} · Unit: ${{ order.unitPrice|floatformat:2 }} · Status: {{ order.status|title }}</p>
 									{% if order.notes %}
 										<p class="hotdog-description"><strong>Notes:</strong> {{ order.notes }}</p>
 									{% endif %}
+									<div class="order-interactions">
+										<button type="button" class="btn btn-small btn-like like-order-btn" data-order-id="{{ order.id }}">{% if order.likedByMe %}Unlike{% else %}Like{% endif %} · <span class="like-count">{{ order.likes }}</span></button>
+										<span class="message-count">{{ order.messageCount }} messages</span>
+									</div>
+									<div class="order-message-thread">
+										{% if order.messages %}
+											{% for message in order.messages %}
+												<div class="message-bubble">
+													<strong>{{ message.authorLabel }}</strong>
+													<span>{{ message.message }}</span>
+												</div>
+											{% endfor %}
+										{% endif %}
+										<form class="message-form" data-order-id="{{ order.id }}">
+											<textarea name="message" rows="2" placeholder="Add a note or message..."></textarea>
+											<button type="submit" class="btn btn-small">Add Message</button>
+										</form>
+									</div>
 									<div class="hotdog-actions">
 										<button type="button" class="btn btn-small btn-edit edit-order-btn" data-order-id="{{ order.id }}">Edit</button>
 										<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="{{ order.id }}">Cancel</button>
@@ -87,17 +119,11 @@
 	</div>
 </section>
 
-<!-- Edit Order Modal -->
 <div id="editOrderModal" class="modal" hidden>
 	<div class="modal-content">
 		<span class="close" onclick="closeEditModal()">&times;</span>
 		<h2>Edit Order</h2>
 		<form id="editOrderForm" class="create-form">
-			<div class="form-group">
-				<label for="editCustomerName">Customer Name</label>
-				<input type="text" id="editCustomerName" name="customerName" required>
-			</div>
-
 			<div class="form-group">
 				<label for="editHotdogName">Hotdog Name</label>
 				<input type="text" id="editHotdogName" name="hotdogName" required>
@@ -118,7 +144,7 @@
 				<textarea id="editNotes" name="notes" rows="3"></textarea>
 			</div>
 
-			<div class="form-group">
+			<div class="form-group" id="statusGroup">
 				<label for="editStatus">Status</label>
 				<select id="editStatus" name="status" style="padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 14px; color: var(--text-dark);">
 					<option value="pending">Pending</option>
@@ -137,14 +163,22 @@
 		</form>
 	</div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
 const API_URL = '/api/orders/';
 const ordersListEl = document.getElementById('ordersList');
+const searchInputEl = document.getElementById('searchInput');
+const searchButtonEl = document.getElementById('searchButton');
+const clearButtonEl = document.getElementById('clearButton');
+const isAdmin = {{ viewer_is_admin|yesno:'true,false' }};
 let currentEditingOrderId = null;
+let currentOrders = [];
+
+document.getElementById('customerName').value = '{{ viewer_label|escapejs }}';
 
 document.getElementById('purchaseHotdogForm').addEventListener('submit', async (e) => {
-	// triggers on checkout/submit
 	e.preventDefault();
 	const data = {
 		customerName: document.getElementById('customerName').value,
@@ -154,7 +188,6 @@ document.getElementById('purchaseHotdogForm').addEventListener('submit', async (
 		notes: document.getElementById('notes').value
 	};
 
-	//sends post request to create the order
 	try {
 		const response = await fetch(API_URL, {
 			method: 'POST',
@@ -165,8 +198,9 @@ document.getElementById('purchaseHotdogForm').addEventListener('submit', async (
 		if (response.ok) {
 			showMessage('Order placed! 🎉', 'success');
 			document.getElementById('purchaseHotdogForm').reset();
+			document.getElementById('customerName').value = '{{ viewer_label|escapejs }}';
 			document.getElementById('quantity').value = 1;
-			loadOrders();
+			await loadOrders();
 		} else {
 			showMessage(result.error || 'Error placing order', 'error');
 		}
@@ -175,7 +209,6 @@ document.getElementById('purchaseHotdogForm').addEventListener('submit', async (
 	}
 });
 
-//cancel button
 ordersListEl.addEventListener('click', async (event) => {
 	const deleteButton = event.target.closest('.cancel-order-btn');
 	if (deleteButton) {
@@ -188,21 +221,36 @@ ordersListEl.addEventListener('click', async (event) => {
 		openEditModal(editButton.dataset.orderId);
 		return;
 	}
+
+	const likeButton = event.target.closest('.like-order-btn');
+	if (likeButton) {
+		await toggleLike(likeButton.dataset.orderId);
+	}
 });
 
-// Edit order form submission
+ordersListEl.addEventListener('submit', async (event) => {
+	const form = event.target.closest('.message-form');
+	if (!form) return;
+	event.preventDefault();
+	const orderId = form.dataset.orderId;
+	const textarea = form.querySelector('textarea[name="message"]');
+	await addMessage(orderId, textarea.value);
+});
+
 document.getElementById('editOrderForm').addEventListener('submit', async (e) => {
 	e.preventDefault();
 	if (!currentEditingOrderId) return;
 
 	const data = {
-		customerName: document.getElementById('editCustomerName').value,
 		hotdogName: document.getElementById('editHotdogName').value,
 		quantity: parseInt(document.getElementById('editQuantity').value, 10),
 		unitPrice: parseFloat(document.getElementById('editUnitPrice').value),
-		notes: document.getElementById('editNotes').value,
-		status: document.getElementById('editStatus').value
+		notes: document.getElementById('editNotes').value
 	};
+
+	if (isAdmin) {
+		data.status = document.getElementById('editStatus').value;
+	}
 
 	try {
 		const response = await fetch(API_URL + currentEditingOrderId + '/', {
@@ -213,9 +261,9 @@ document.getElementById('editOrderForm').addEventListener('submit', async (e) =>
 		const result = await response.json();
 		if (response.ok) {
 			showEditMessage('Order updated! 🎉', 'success');
-			setTimeout(() => {
+			setTimeout(async () => {
 				closeEditModal();
-				loadOrders();
+				await loadOrders();
 			}, 500);
 		} else {
 			showEditMessage(result.error || 'Error updating order', 'error');
@@ -225,53 +273,125 @@ document.getElementById('editOrderForm').addEventListener('submit', async (e) =>
 	}
 });
 
-// loads the orders you have made
+searchButtonEl.addEventListener('click', searchOrders);
+clearButtonEl.addEventListener('click', async () => {
+	searchInputEl.value = '';
+	await loadOrders();
+});
+
 async function loadOrders() {
 	try {
 		const response = await fetch(API_URL);
-		const data = await response.json();
-		const orders = data.orders;
-		document.getElementById('orderCount').textContent = orders.length;
-		if (!orders.length) {
-			ordersListEl.innerHTML = '<p class="empty-message">No orders yet. Place the first hotdog purchase! 🌭</p>';
+		if (response.status === 401) {
+			showMessage('Sign in to view your orders.', 'error');
 			return;
 		}
-		ordersListEl.innerHTML = orders.map(order => `
-			<div class="hotdog-card" data-id="${order.id}">
-				<div class="hotdog-card-header">
-					<h3>${order.customerName} — ${order.hotdogName}</h3>
-					<span class="hotdog-price">$${order.totalPrice.toFixed(2)}</span>
-				</div>
-				<p class="hotdog-description">Qty: ${order.quantity} · Unit: $${order.unitPrice.toFixed(2)} · Status: ${order.status}</p>
-				${order.notes ? `<p class="hotdog-description"><strong>Notes:</strong> ${order.notes}</p>` : ''}
-				<div class="hotdog-actions">
-					<button type="button" class="btn btn-small btn-edit edit-order-btn" data-order-id="${order.id}">Edit</button>
-					<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="${order.id}">Cancel</button>
-				</div>
-			</div>
-		`).join('');
+		const data = await response.json();
+		currentOrders = data.orders || [];
+		renderOrders(currentOrders);
 	} catch (error) {
 		console.error('Error loading orders:', error);
 	}
 }
 
-//asks for confirmation before deleting, deletes the order
-async function cancelOrder(id) {
-	if (!confirm('Are you sure you want to cancel this order?')) return;
+function renderOrders(orders) {
+	document.getElementById('orderCount').textContent = orders.length;
+	if (!orders.length) {
+		ordersListEl.innerHTML = '<p class="empty-message">No orders yet. Place the first hotdog purchase! 🌭</p>';
+		return;
+	}
+
+	ordersListEl.innerHTML = orders.map(renderOrderCard).join('');
+}
+
+function renderOrderCard(order) {
+	const messages = (order.messages || []).map(message => `
+		<div class="message-bubble">
+			<strong>${escapeHtml(message.authorLabel || 'Guest')}</strong>
+			<span>${escapeHtml(message.message || '')}</span>
+		</div>
+	`).join('');
+
+	return `
+		<div class="hotdog-card" data-id="${order.id}">
+			<div class="hotdog-card-header">
+				<h3>${escapeHtml(order.hotdogName || '')}</h3>
+				<span class="hotdog-price">$${Number(order.totalPrice || 0).toFixed(2)}</span>
+			</div>
+			<p class="hotdog-description">Owner: ${escapeHtml(order.ownerDisplayName || order.customerName || '')} · Qty: ${order.quantity} · Unit: $${Number(order.unitPrice || 0).toFixed(2)} · Status: ${escapeHtml(titleCase(order.status || 'pending'))}</p>
+			${order.notes ? `<p class="hotdog-description"><strong>Notes:</strong> ${escapeHtml(order.notes)}</p>` : ''}
+			<div class="order-interactions">
+				<button type="button" class="btn btn-small btn-like like-order-btn" data-order-id="${order.id}">${order.likedByMe ? 'Unlike' : 'Like'} · <span class="like-count">${order.likes || 0}</span></button>
+				<span class="message-count">${order.messageCount || 0} messages</span>
+			</div>
+			<div class="order-message-thread">
+				${messages}
+				<form class="message-form" data-order-id="${order.id}">
+					<textarea name="message" rows="2" placeholder="Add a note or message..."></textarea>
+					<button type="submit" class="btn btn-small">Add Message</button>
+				</form>
+			</div>
+			<div class="hotdog-actions">
+				${order.canEdit ? `<button type="button" class="btn btn-small btn-edit edit-order-btn" data-order-id="${order.id}">Edit</button>
+				<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="${order.id}">Cancel</button>` : '<span class="empty-message">Read only</span>'}
+			</div>
+		</div>
+	`;
+}
+
+async function toggleLike(orderId) {
 	try {
-		const response = await fetch(API_URL + id + '/', { method: 'DELETE' });
+		const response = await fetch(API_URL + orderId + '/like/', { method: 'POST' });
+		const result = await response.json();
 		if (response.ok) {
-			loadOrders();
-			showMessage('Order cancelled.', 'success');
+			await loadOrders();
 		} else {
-			showMessage('Error cancelling order', 'error');
+			showMessage(result.error || 'Error liking order', 'error');
 		}
 	} catch (error) {
 		showMessage('Error: ' + error.message, 'error');
 	}
 }
 
-// Open edit modal
+async function addMessage(orderId, message) {
+	if (!message.trim()) {
+		showMessage('Message cannot be empty', 'error');
+		return;
+	}
+
+	try {
+		const response = await fetch(API_URL + orderId + '/messages/', {
+			method: 'POST',
+			headers: {'Content-Type': 'application/json'},
+			body: JSON.stringify({ message })
+		});
+		const result = await response.json();
+		if (response.ok) {
+			await loadOrders();
+		} else {
+			showMessage(result.error || 'Error adding message', 'error');
+		}
+	} catch (error) {
+		showMessage('Error: ' + error.message, 'error');
+	}
+}
+
+async function cancelOrder(id) {
+	if (!confirm('Are you sure you want to cancel this order?')) return;
+	try {
+		const response = await fetch(API_URL + id + '/', { method: 'DELETE' });
+		if (response.ok) {
+			await loadOrders();
+			showMessage('Order cancelled.', 'success');
+		} else {
+			const result = await response.json().catch(() => ({}));
+			showMessage(result.error || 'Error cancelling order', 'error');
+		}
+	} catch (error) {
+		showMessage('Error: ' + error.message, 'error');
+	}
+}
+
 async function openEditModal(orderId) {
 	try {
 		const response = await fetch(API_URL + orderId + '/');
@@ -282,26 +402,24 @@ async function openEditModal(orderId) {
 		const order = await response.json();
 
 		currentEditingOrderId = orderId;
-		document.getElementById('editCustomerName').value = order.customerName;
 		document.getElementById('editHotdogName').value = order.hotdogName;
 		document.getElementById('editQuantity').value = order.quantity;
 		document.getElementById('editUnitPrice').value = order.unitPrice;
 		document.getElementById('editNotes').value = order.notes;
 		document.getElementById('editStatus').value = order.status;
+		document.getElementById('statusGroup').hidden = !isAdmin;
 		document.getElementById('editFormMessage').textContent = '';
-	document.getElementById('editOrderModal').hidden = false;
+		document.getElementById('editOrderModal').hidden = false;
 	} catch (error) {
 		showMessage('Error: ' + error.message, 'error');
 	}
 }
 
-// Close edit modal
 function closeEditModal() {
 	document.getElementById('editOrderModal').hidden = true;
 	currentEditingOrderId = null;
 }
 
-// Close modal when clicking outside of it
 window.addEventListener('click', (event) => {
 	const modal = document.getElementById('editOrderModal');
 	if (event.target === modal) {
@@ -309,7 +427,6 @@ window.addEventListener('click', (event) => {
 	}
 });
 
-//displays temporary messages to the user
 function showMessage(message, type) {
 	const messageDiv = document.getElementById('formMessage');
 	messageDiv.textContent = message;
@@ -320,7 +437,6 @@ function showMessage(message, type) {
 	}, 3000);
 }
 
-//displays temporary messages in edit modal
 function showEditMessage(message, type) {
 	const messageDiv = document.getElementById('editFormMessage');
 	messageDiv.textContent = message;
@@ -333,51 +449,37 @@ function showEditMessage(message, type) {
 	}
 }
 
-//searches orders by customer name or hotdog name (pending only)
 async function searchOrders() {
-	const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-	if (!searchTerm.trim()) {
+	const searchTerm = searchInputEl.value.toLowerCase().trim();
+	if (!searchTerm) {
 		showMessage('Please enter a search term', 'error');
 		return;
 	}
-	try {
-		const response = await fetch(API_URL);
-		const data = await response.json();
-		const orders = data.orders;
-		
-		// Filter to only pending orders that match the search term
-		const filteredOrders = orders.filter(order => 
-			order.status === 'pending' && 
-			(order.customerName.toLowerCase().includes(searchTerm) || 
-			 order.hotdogName.toLowerCase().includes(searchTerm))
-		);
-		
-		document.getElementById('orderCount').textContent = filteredOrders.length;
-		if (!filteredOrders.length) {
-			ordersListEl.innerHTML = '<p class="empty-message">No pending orders found matching your search. 🔍</p>';
-			return;
-		}
-		ordersListEl.innerHTML = filteredOrders.map(order => `
-			<div class="hotdog-card" data-id="${order.id}">
-				<div class="hotdog-card-header">
-					<h3>${order.customerName} — ${order.hotdogName}</h3>
-					<span class="hotdog-price">$${order.totalPrice.toFixed(2)}</span>
-				</div>
-				<p class="hotdog-description">Qty: ${order.quantity} · Unit: $${order.unitPrice.toFixed(2)} · Status: ${order.status}</p>
-				${order.notes ? `<p class="hotdog-description"><strong>Notes:</strong> ${order.notes}</p>` : ''}
-				<div class="hotdog-actions">
-					<button type="button" class="btn btn-small btn-edit edit-order-btn" data-order-id="${order.id}">Edit</button>
-					<button type="button" class="btn btn-small btn-delete cancel-order-btn" data-order-id="${order.id}">Cancel</button>
-				</div>
-			</div>
-		`).join('');
-	} catch (error) {
-		showMessage('Error searching orders: ' + error.message, 'error');
-	}
+
+	const filteredOrders = currentOrders.filter(order => {
+		const haystack = [order.customerName, order.ownerDisplayName, order.hotdogName, order.notes]
+			.filter(Boolean)
+			.join(' ')
+			.toLowerCase();
+		return haystack.includes(searchTerm);
+	});
+
+	renderOrders(filteredOrders);
 }
 
-//ensures the script runs right when the page is opened
+function titleCase(value) {
+	return value.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function escapeHtml(value) {
+	return String(value)
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;')
+		.replaceAll("'", '&#39;');
+}
+
 loadOrders();
 </script>
 {% endblock %}
-

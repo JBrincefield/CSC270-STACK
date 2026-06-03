@@ -13,6 +13,7 @@ production use.
 import os
 import threading
 from copy import deepcopy
+from datetime import datetime, timezone
 
 _initialized = False
 _use_firestore = False
@@ -64,11 +65,19 @@ def _doc_to_order(doc):
     return {
         'id': int(data.get('id')) if data.get('id') is not None else None,
         'customerName': data.get('customerName', ''),
+        'ownerUid': data.get('ownerUid', ''),
+        'ownerEmail': data.get('ownerEmail', ''),
+        'ownerDisplayName': data.get('ownerDisplayName', data.get('customerName', '')),
         'hotdogName': data.get('hotdogName', ''),
         'unitPrice': float(data.get('unitPrice', 0.0)),
         'quantity': int(data.get('quantity', 1)),
         'notes': data.get('notes', ''),
         'status': data.get('status', 'pending'),
+        'likes': int(data.get('likes', 0)),
+        'likedBy': list(data.get('likedBy', [])),
+        'messages': list(data.get('messages', [])),
+        'createdAt': data.get('createdAt', ''),
+        'updatedAt': data.get('updatedAt', ''),
     }
 
 
@@ -81,6 +90,19 @@ def get_all_orders():
 
     # fallback
     return deepcopy(_in_memory_store)
+
+
+def get_orders_for_user(user_uid, include_all=False):
+    init_app()
+    if include_all:
+        return get_all_orders()
+
+    if _use_firestore and _client is not None:
+        coll = _client.collection('orders')
+        docs = coll.where('ownerUid', '==', user_uid).stream()
+        return [_doc_to_order(d) for d in docs]
+
+    return [deepcopy(item) for item in _in_memory_store if item.get('ownerUid') == user_uid]
 
 
 def _find_doc_snapshot_by_id(order_id):
@@ -151,6 +173,12 @@ def create_order(order_data):
                 next_id = 1
         payload = dict(order_data)
         payload['id'] = int(next_id)
+        now = datetime.now(timezone.utc).isoformat()
+        payload.setdefault('likes', 0)
+        payload.setdefault('likedBy', [])
+        payload.setdefault('messages', [])
+        payload.setdefault('createdAt', now)
+        payload.setdefault('updatedAt', now)
         coll.add(payload)
         return get_order_by_id(next_id)
 
@@ -162,12 +190,20 @@ def create_order(order_data):
         next_id = 1
     payload = dict(order_data)
     payload['id'] = next_id
+    now = datetime.now(timezone.utc).isoformat()
+    payload.setdefault('likes', 0)
+    payload.setdefault('likedBy', [])
+    payload.setdefault('messages', [])
+    payload.setdefault('createdAt', now)
+    payload.setdefault('updatedAt', now)
     _in_memory_store.append(payload)
     return deepcopy(payload)
 
 
 def update_order(order_id, updates):
     init_app()
+    updates = dict(updates)
+    updates['updatedAt'] = datetime.now(timezone.utc).isoformat()
     if _use_firestore and _client is not None:
         coll = _client.collection('orders')
         docs = coll.where('id', '==', int(order_id)).limit(1).stream()
@@ -183,6 +219,36 @@ def update_order(order_id, updates):
                 item[k] = v
             return deepcopy(item)
     return None
+
+
+def toggle_order_like(order_id, user):
+    order = get_order_by_id(order_id)
+    if not order:
+        return None
+
+    liked_by = list(order.get('likedBy', []))
+    user_uid = user.get('uid')
+    if user_uid in liked_by:
+        liked_by = [uid for uid in liked_by if uid != user_uid]
+    else:
+        liked_by.append(user_uid)
+
+    return update_order(order_id, {'likedBy': liked_by, 'likes': len(liked_by)})
+
+
+def add_order_message(order_id, user, message):
+    order = get_order_by_id(order_id)
+    if not order:
+        return None
+
+    messages = list(order.get('messages', []))
+    messages.append({
+        'authorUid': user.get('uid', ''),
+        'authorLabel': user.get('displayName') or user.get('email') or 'Guest',
+        'message': message,
+        'createdAt': datetime.now(timezone.utc).isoformat(),
+    })
+    return update_order(order_id, {'messages': messages})
 
 
 def delete_order(order_id):

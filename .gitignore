@@ -14,3 +14,7 @@ stackApp/stackApp/__pycache__/*
 # Firebase service account key
 /firebase-service-account-key.json
 *.json
+
+# Local environment files
+.env
+.env.*

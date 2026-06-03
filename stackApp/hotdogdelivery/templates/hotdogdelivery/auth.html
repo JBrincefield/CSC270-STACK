@@ -1,0 +1,141 @@
+{% extends 'hotdogdelivery/base.html' %}
+
+{% block title %}Sign in{% endblock %}
+
+{% block head %}
+  {% if firebase_web_config_json %}
+    <script id="firebase-web-config" type="application/json">{{ firebase_web_config_json|safe }}</script>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="snap-section auth-hero">
+  <div class="auth-shell">
+    <div class="auth-intro">
+      <span class="mission-eyebrow">Membership</span>
+      <h1>Sign in to protect your orders</h1>
+      <p>
+        Register or log in with Firebase Authentication. Once you are signed in,
+        your orders stay attached to your account and other users cannot edit them.
+      </p>
+    </div>
+
+    {% if auth_user %}
+      <div class="auth-status-card">
+        <h2>Current session</h2>
+        <p>You are signed in as <strong>{{ auth_user.displayName|default:auth_user.email }}</strong>.</p>
+        {% if auth_is_admin %}
+          <p><strong>Admin</strong> access is enabled for this account.</p>
+        {% endif %}
+        <a class="btn" href="{% url 'order' %}">Go to orders</a>
+      </div>
+    {% endif %}
+
+    {% if firebase_web_config_json %}
+      <div class="auth-grid">
+        <form id="registerForm" class="auth-card">
+          <h2>Create account</h2>
+          <label>Email
+            <input type="email" id="registerEmail" required>
+          </label>
+          <label>Display name
+            <input type="text" id="registerDisplayName" required>
+          </label>
+          <label>Password
+            <input type="password" id="registerPassword" minlength="6" required>
+          </label>
+          <button type="submit" class="btn">Register</button>
+          <p class="auth-message" id="registerMessage"></p>
+        </form>
+
+        <form id="loginForm" class="auth-card">
+          <h2>Log in</h2>
+          <label>Email
+            <input type="email" id="loginEmail" required>
+          </label>
+          <label>Password
+            <input type="password" id="loginPassword" required>
+          </label>
+          <button type="submit" class="btn secondary">Log in</button>
+          <p class="auth-message" id="loginMessage"></p>
+        </form>
+      </div>
+      <p class="auth-note">If you have not configured Firebase web auth yet, set the Firebase web config environment variables before starting Django.</p>
+    {% else %}
+      <div class="auth-status-card">
+        <h2>Firebase web config is missing</h2>
+        <p>
+          Set FIREBASE_WEB_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID, and FIREBASE_APP_ID
+          so the browser can sign users in with Firebase Authentication.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  {% if firebase_web_config_json %}
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+
+    const config = JSON.parse(document.getElementById('firebase-web-config').textContent);
+    const app = initializeApp(config);
+    const auth = getAuth(app);
+    const nextUrl = new URLSearchParams(window.location.search).get('next') || "{% url 'order' %}";
+    const sessionUrl = "{% url 'auth_session' %}";
+
+    async function syncSession(user) {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch(sessionUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ idToken })
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || 'Unable to create session');
+      }
+
+      window.location.href = nextUrl;
+    }
+
+    document.getElementById('registerForm')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const message = document.getElementById('registerMessage');
+      message.textContent = '';
+      try {
+        const credentials = await createUserWithEmailAndPassword(
+          auth,
+          document.getElementById('registerEmail').value,
+          document.getElementById('registerPassword').value,
+        );
+        await updateProfile(credentials.user, {
+          displayName: document.getElementById('registerDisplayName').value,
+        });
+        await syncSession(credentials.user);
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    });
+
+    document.getElementById('loginForm')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const message = document.getElementById('loginMessage');
+      message.textContent = '';
+      try {
+        const credentials = await signInWithEmailAndPassword(
+          auth,
+          document.getElementById('loginEmail').value,
+          document.getElementById('loginPassword').value,
+        );
+        await syncSession(credentials.user);
+      } catch (error) {
+        message.textContent = error.message;
+      }
+    });
+  </script>
+  {% endif %}
+{% endblock %}

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Hotdog Delivery{% endblock %}</title>
     <link rel="icon" type="image/png" href="{% static 'hotdogdelivery/hotdog.png' %}">
+    {% block head %}{% endblock %}
     <style>
         :root {
             /* rotate the hotdog glyph so its tip points toward the top-left (pointer tip)
@@ -24,6 +25,7 @@
     </main>
 
     {% include 'hotdogdelivery/_footer.html' %}
+    {% block scripts %}{% endblock %}
     <!-- Hotdog Fall Effect -->
     <style>
         @keyframes hotdog-fall {

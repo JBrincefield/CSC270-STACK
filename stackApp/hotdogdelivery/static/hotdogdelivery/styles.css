@@ -1079,3 +1079,252 @@ p {
 		margin-bottom: 24px;
 	}
 }
+
+.nav-auth {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: 12px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+.nav-user-badge,
+.nav-role-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 10px;
+	border-radius: 999px;
+	background: rgba(255, 248, 241, 0.9);
+	border: 1px solid rgba(59, 31, 15, 0.08);
+	color: #3b1f0f;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.nav-role-badge {
+	background: #fff3f3;
+	color: var(--title-red);
+}
+
+.nav-auth-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 12px;
+	border-radius: 999px;
+	background: var(--title-red);
+	color: #fff;
+	text-decoration: none;
+	font-size: 13px;
+	font-weight: 700;
+	border: none;
+	cursor: pointer;
+}
+
+.nav-auth-button-secondary {
+	background: #f0f0f0;
+	color: var(--text-dark);
+	border: 1px solid var(--border);
+}
+
+.nav-logout-form {
+	margin: 0;
+}
+
+.order-header {
+	display: flex;
+	justify-content: space-between;
+	gap: 20px;
+	align-items: flex-start;
+	margin-bottom: 24px;
+	flex-wrap: wrap;
+}
+
+.order-header h1 {
+	margin-bottom: 8px;
+}
+
+.order-session-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border-radius: 999px;
+	background: #fff3f3;
+	border: 1px solid rgba(193, 18, 31, 0.12);
+	color: var(--title-red);
+	font-weight: 800;
+}
+
+.list-toolbar {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.search-section {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.search-section input {
+	flex: 1 1 220px;
+	padding: 8px 10px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	font-family: inherit;
+}
+
+.order-interactions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-top: 12px;
+	flex-wrap: wrap;
+}
+
+.btn-like {
+	background: #fff3f3;
+	color: var(--title-red);
+	border: 1px solid rgba(193, 18, 31, 0.14);
+}
+
+.message-count {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--muted);
+}
+
+.order-message-thread {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid rgba(241, 208, 208, 0.8);
+}
+
+.message-bubble {
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: #fff;
+	border: 1px solid var(--border);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.message-bubble strong {
+	color: var(--title-red);
+	font-size: 12px;
+}
+
+.message-bubble span {
+	font-size: 13px;
+	color: var(--text-dark);
+}
+
+.message-form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.message-form textarea {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	font-family: inherit;
+	font-size: 14px;
+}
+
+.message-form button {
+	align-self: flex-start;
+}
+
+.auth-hero {
+	width: 100%;
+	max-width: 1100px;
+	margin: 0 auto;
+}
+
+.auth-shell {
+	width: 100%;
+	background: #fff;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	padding: 40px;
+	box-shadow: 0 18px 40px rgba(18, 18, 18, 0.06);
+}
+
+.auth-intro {
+	max-width: 760px;
+	margin-bottom: 24px;
+}
+
+.auth-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 20px;
+}
+
+.auth-card,
+.auth-status-card {
+	background: #fff;
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	padding: 24px;
+	box-shadow: 0 10px 24px rgba(18, 18, 18, 0.04);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.auth-card label {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-weight: 600;
+	color: var(--text-dark);
+}
+
+.auth-card input {
+	padding: 10px 12px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	font-family: inherit;
+}
+
+.auth-message,
+.auth-note {
+	margin: 0;
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.auth-status-card .btn {
+	align-self: flex-start;
+}
+
+@media (max-width: 760px) {
+	.nav-auth {
+		margin-left: 0;
+	}
+
+	.auth-shell,
+	.order-wrapper,
+	.order-purchase-panel,
+	.mission-shell,
+	.hotdog-create-wrapper {
+		padding: 20px;
+	}
+
+	.auth-grid,
+	.hotdog-create-container {
+		grid-template-columns: 1fr;
+	}
+}

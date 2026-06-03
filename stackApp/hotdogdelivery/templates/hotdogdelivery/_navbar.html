@@ -6,5 +6,20 @@
 		<a href="{% url 'home' %}">Home</a>
 		<a href="{% url 'order' %}">Order</a>
 		<a href="{% url 'mission' %}">Mission</a>
+		<a href="{% url 'auth_page' %}">Auth</a>
+	</div>
+	<div class="nav-auth">
+		{% if auth_user %}
+			<span class="nav-user-badge">{{ auth_user.displayName|default:auth_user.email }}</span>
+			{% if auth_is_admin %}
+				<span class="nav-role-badge">Admin</span>
+			{% endif %}
+			<form method="post" action="{% url 'auth_logout' %}" class="nav-logout-form">
+				{% csrf_token %}
+				<button type="submit" class="nav-auth-button nav-auth-button-secondary">Logout</button>
+			</form>
+		{% else %}
+			<a href="{% url 'auth_page' %}" class="nav-auth-button">Sign in</a>
+		{% endif %}
 	</div>
 </nav>

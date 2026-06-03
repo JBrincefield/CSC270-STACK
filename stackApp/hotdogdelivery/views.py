@@ -1,31 +1,31 @@
 """HTTP views for the Hotdog Delivery app.
 
-This module contains simple Django views and a tiny API used by the
-frontend. It delegates persistence to the data access layer in
-`hotdogdelivery.dal` and keeps the presentation logic lightweight.
-
-Where external services are used (e.g. the Kanye REST API) this module
-handles errors gracefully to avoid degrading the user experience.
+This module contains the public pages plus the JSON API used by the
+frontend. Firebase Authentication is used for membership, and the Django
+session stores the signed-in user so the rest of the app can enforce
+ownership and role-based access.
 """
 
-from django.shortcuts import render
-import requests
-from django.http import JsonResponse
+from __future__ import annotations
+
 import json
-from django.views.decorators.csrf import csrf_exempt
 import logging
 
-# Data access layer (can use Firebase/Firestore or fall back to in-memory)
+import requests
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+
+from . import auth_utils
 from . import dal
 
-# Initialize the DAL (will fall back to in-memory if Firebase isn't configured)
+
 dal.init_app()
 
-# Module logger
 logger = logging.getLogger(__name__)
 
 
-# fetches random kanye quote
 def fetch_kanye_quote():
     """Fetch a Kanye quote and degrade gracefully when the API is unavailable."""
     try:
@@ -33,68 +33,158 @@ def fetch_kanye_quote():
         response.raise_for_status()
         return response.json().get('quote') or "Kanye's wisdom is currently unavailable"
     except (requests.exceptions.RequestException, ValueError, KeyError) as exc:
-        # Log the exception for easier debugging in development but keep
-        # the user-facing behavior unchanged (a friendly fallback message).
         logger.exception('Failed to fetch Kanye quote: %s', exc)
         return "Kanye's wisdom is currently unavailable"
 
-#creates dictionary with kanye quote for later use
+
 def _kanye_quote_context():
     return {'kanye_quote': fetch_kanye_quote()}
 
 
-# formats and summarizes a single order
-def _order_summary(order):
+def _viewer(request):
+    return auth_utils.get_session_user(request)
+
+
+def _viewer_response(request):
+    viewer = _viewer(request)
+    if viewer:
+        return viewer, None
+    return None, JsonResponse({'error': 'Authentication required'}, status=401)
+
+
+def _order_summary(order, viewer=None):
     total = round(order['unitPrice'] * order['quantity'], 2)
+    viewer_uid = viewer.get('uid') if viewer else None
+    is_owner = bool(viewer_uid and order.get('ownerUid') == viewer_uid)
+    can_edit = bool(viewer and (viewer.get('isAdmin') or is_owner))
+    messages = list(order.get('messages', []))
+    liked_by = list(order.get('likedBy', []))
+
     return {
         'id': order['id'],
-        'customerName': order['customerName'],
-        'hotdogName': order['hotdogName'],
-        'quantity': order['quantity'],
-        'unitPrice': order['unitPrice'],
+        'customerName': order.get('customerName', ''),
+        'ownerUid': order.get('ownerUid', ''),
+        'ownerEmail': order.get('ownerEmail', ''),
+        'ownerDisplayName': order.get('ownerDisplayName', order.get('customerName', '')),
+        'hotdogName': order.get('hotdogName', ''),
+        'quantity': order.get('quantity', 1),
+        'unitPrice': order.get('unitPrice', 0.0),
         'totalPrice': total,
-        'notes': order['notes'],
-        'status': order['status'],
+        'notes': order.get('notes', ''),
+        'status': order.get('status', 'pending'),
+        'likes': int(order.get('likes', len(liked_by))),
+        'likedBy': liked_by,
+        'messages': messages,
+        'messageCount': len(messages),
+        'isOwner': is_owner,
+        'canEdit': can_edit,
+        'canMessage': bool(viewer),
+        'likedByMe': bool(viewer_uid and viewer_uid in liked_by),
     }
 
-#used to pass order data into the template
-def _order_context():
-    return {'orders': [_order_summary(order) for order in dal.get_all_orders()]}
+
+def _orders_for_viewer(viewer):
+    return dal.get_orders_for_user(viewer['uid'], include_all=viewer.get('isAdmin', False))
+
+
+def _order_context(request):
+    viewer = _viewer(request)
+    if not viewer:
+        return {'orders': []}
+
+    orders = _orders_for_viewer(viewer)
+    return {
+        'orders': [_order_summary(order, viewer) for order in orders],
+        'viewer_uid': viewer['uid'],
+        'viewer_is_admin': viewer.get('isAdmin', False),
+        'viewer_label': auth_utils.user_label(viewer),
+    }
+
 
 def our_mission(request):
-    """Render the About / Our Mission page (keeps the hotdog vs sausage comparison).
-
-    We preserve the Kanye quote call but degrade gracefully if the API is unavailable.
-    """
     return render(request, 'hotdogdelivery/mission.html', _kanye_quote_context())
 
-#runders the order.html and passes both orders and kanye quotes to the frontend
+
 def order(request):
-    context = _order_context()
+    viewer = _viewer(request)
+    if not viewer:
+        next_path = request.get_full_path()
+        return redirect(f"{reverse('auth_page')}?next={next_path}")
+
+    context = _order_context(request)
     context.update(_kanye_quote_context())
     return render(request, 'hotdogdelivery/order.html', context)
+
 
 def home(request):
     return render(request, 'hotdogdelivery/home.html', _kanye_quote_context())
 
 
-#GET: retrieves all information from order_store
-#POST: Extracts data from incoming order and validates it, gives it an ID, 
-# and sets a status before appending it to orders_store
+def auth_page(request):
+    if _viewer(request):
+        return redirect('order')
+
+    return render(
+        request,
+        'hotdogdelivery/auth.html',
+        {
+            'next_url': request.GET.get('next') or reverse('order'),
+        },
+    )
+
+
+@csrf_exempt
+def auth_session(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    token = payload.get('idToken', '')
+    if not token:
+        return JsonResponse({'error': 'Missing Firebase token'}, status=400)
+
+    try:
+        decoded = auth_utils.verify_id_token(token)
+        record = auth_utils.get_user_record(decoded.get('uid', ''))
+        claims = record.custom_claims or {}
+        request.session['firebase_user'] = {
+            'uid': record.uid,
+            'email': record.email or decoded.get('email', ''),
+            'displayName': record.display_name or decoded.get('name') or decoded.get('email', ''),
+            'photoURL': record.photo_url or decoded.get('picture', ''),
+            'isAdmin': auth_utils.is_admin_claim(claims or decoded),
+        }
+        request.session.set_expiry(60 * 60 * 24 * 7)
+        return JsonResponse({'user': request.session['firebase_user']})
+    except Exception as exc:
+        logger.exception('Failed to establish Firebase session: %s', exc)
+        return JsonResponse({'error': 'Unable to sign in'}, status=401)
+
+
+def auth_logout(request):
+    auth_utils.clear_session_user(request)
+    next_url = request.POST.get('next') or reverse('home')
+    return redirect(next_url)
+
+
 @csrf_exempt
 def api_orders_list(request):
-    """GET: List all hotdog orders, POST: Create a new hotdog purchase."""
+    """GET: List the current user's orders, POST: Create a new hotdog purchase."""
+    viewer, error_response = _viewer_response(request)
+    if error_response:
+        return error_response
+
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            customer_name = data.get('customerName', '').strip()
+            data = json.loads(request.body or '{}')
             hotdog_name = data.get('hotdogName', '').strip()
             unit_price = data.get('unitPrice')
             quantity = data.get('quantity', 1)
             notes = data.get('notes', '').strip()
-
-            if not customer_name:
-                return JsonResponse({'error': 'Customer name is required'}, status=400)
 
             if not hotdog_name:
                 return JsonResponse({'error': 'Hotdog selection is required'}, status=400)
@@ -103,56 +193,63 @@ def api_orders_list(request):
                 quantity_int = int(quantity)
                 if quantity_int < 1:
                     return JsonResponse({'error': 'Quantity must be at least 1'}, status=400)
-            except (ValueError, TypeError):
+            except (TypeError, ValueError):
                 return JsonResponse({'error': 'Quantity must be a valid whole number'}, status=400)
 
             try:
                 price_float = float(unit_price)
                 if price_float < 0:
                     return JsonResponse({'error': 'Unit price must be positive'}, status=400)
-            except (ValueError, TypeError):
+            except (TypeError, ValueError):
                 return JsonResponse({'error': 'Unit price must be a valid number'}, status=400)
 
             order_payload = {
-                'customerName': customer_name,
+                'customerName': auth_utils.user_label(viewer),
+                'ownerUid': viewer['uid'],
+                'ownerEmail': viewer.get('email', ''),
+                'ownerDisplayName': viewer.get('displayName', ''),
                 'hotdogName': hotdog_name,
                 'unitPrice': price_float,
                 'quantity': quantity_int,
                 'notes': notes,
-                'status': 'pending'
+                'status': 'pending',
+                'likes': 0,
+                'likedBy': [],
+                'messages': [],
             }
 
             created = dal.create_order(order_payload)
-            return JsonResponse(_order_summary(created), status=201)
+            return JsonResponse(_order_summary(created, viewer), status=201)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    # GET: Return all orders
-    return JsonResponse({'orders': [_order_summary(order) for order in dal.get_all_orders()]})
+    orders = _orders_for_viewer(viewer)
+    return JsonResponse({'orders': [_order_summary(order, viewer) for order in orders]})
 
 
-#GET: Finds order by ID in orders_store, returns formatted orders
-#PUT: Finds order by ID, updates any information, and returns updated formatted order
-#DELETE: deletes the order
 @csrf_exempt
 def api_order_detail(request, order_id):
     """GET/UPDATE/DELETE a specific order."""
-    order = dal.get_order_by_id(order_id)
+    viewer, error_response = _viewer_response(request)
+    if error_response:
+        return error_response
 
+    order = dal.get_order_by_id(order_id)
     if not order:
         return JsonResponse({'error': 'Order not found'}, status=404)
 
-    # Get Functionality
-    if request.method == 'GET':
-        return JsonResponse(_order_summary(order))
+    can_edit = viewer.get('isAdmin') or order.get('ownerUid') == viewer['uid']
+    if not can_edit:
+        return JsonResponse({'error': 'Order not found'}, status=404)
 
-    # put functionality
-    elif request.method == 'PUT':
+    if request.method == 'GET':
+        return JsonResponse(_order_summary(order, viewer))
+
+    if request.method == 'PUT':
         try:
-            data = json.loads(request.body)
+            data = json.loads(request.body or '{}')
             updates = {}
-            if 'customerName' in data:
-                updates['customerName'] = data.get('customerName', order['customerName']).strip()
+
             if 'hotdogName' in data:
                 updates['hotdogName'] = data.get('hotdogName', order['hotdogName']).strip()
             if 'notes' in data:
@@ -168,30 +265,76 @@ def api_order_detail(request, order_id):
                     return JsonResponse({'error': 'Unit price must be positive'}, status=400)
                 updates['unitPrice'] = price_float
             if 'status' in data:
+                if not viewer.get('isAdmin'):
+                    return JsonResponse({'error': 'Only admins can change order status'}, status=403)
                 updates['status'] = data['status']
 
             updated = dal.update_order(order_id, updates)
             if not updated:
                 return JsonResponse({'error': 'Order not found'}, status=404)
-            return JsonResponse(_order_summary(updated))
+            return JsonResponse(_order_summary(updated, viewer))
         except (json.JSONDecodeError, ValueError):
             return JsonResponse({'error': 'Invalid request'}, status=400)
 
-    # delete functionality
-    elif request.method == 'DELETE':
-        success = dal.delete_order(order_id)
-        if success:
+    if request.method == 'DELETE':
+        if not viewer.get('isAdmin') and order.get('ownerUid') != viewer['uid']:
+            return JsonResponse({'error': 'Order not found'}, status=404)
+        if dal.delete_order(order_id):
             return JsonResponse({'message': 'Order cancelled'}, status=200)
         return JsonResponse({'error': 'Order not found'}, status=404)
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-def get_kanye_quote(request):
-    """A tiny API endpoint returning a Kanye quote (used by the frontend).
+@csrf_exempt
+def api_order_like(request, order_id):
+    viewer, error_response = _viewer_response(request)
+    if error_response:
+        return error_response
 
-    This keeps the frontend decoupled from the external API and ensures
-    server-side caching or rate-limiting could be added later without
-    changing client code.
-    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    order = dal.get_order_by_id(order_id)
+    if not order:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+
+    if not viewer.get('isAdmin') and order.get('ownerUid') != viewer['uid']:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+
+    updated = dal.toggle_order_like(order_id, viewer)
+    return JsonResponse(_order_summary(updated, viewer))
+
+
+@csrf_exempt
+def api_order_messages(request, order_id):
+    viewer, error_response = _viewer_response(request)
+    if error_response:
+        return error_response
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    order = dal.get_order_by_id(order_id)
+    if not order:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+
+    if not viewer.get('isAdmin') and order.get('ownerUid') != viewer['uid']:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    message = (payload.get('message') or '').strip()
+    if not message:
+        return JsonResponse({'error': 'Message cannot be empty'}, status=400)
+
+    updated = dal.add_order_message(order_id, viewer, message)
+    return JsonResponse(_order_summary(updated, viewer), status=201)
+
+
+def get_kanye_quote(request):
+    """A tiny API endpoint returning a Kanye quote (used by the frontend)."""
     return JsonResponse({'quote': fetch_kanye_quote()})
