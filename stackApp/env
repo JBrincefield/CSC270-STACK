@@ -1,8 +1,0 @@
-FIREBASE_CREDENTIALS=csc270-stackapp-firebase-adminsdk-fbsvc-9fc7149640.json
-py manage.py runserver
-FIREBASE_WEB_API_KEY=IzaSyCpqDmP4pWuPnT16n5MAg-LusP0wkqxcxA
-FIREBASE_AUTH_DOMAIN=csc270-stackapp.firebaseapp.com
-FIREBASE_PROJECT_ID=csc270-stackapp
-FIREBASE_STORAGE_BUCKET=csc270-stackapp.firebasestorage.app
-FIREBASE_MESSAGING_SENDER_ID=84724347125
-FIREBASE_APP_ID=1:84724347125:web:76094dfe6ccedc3e6a95bc
